@@ -213,6 +213,23 @@
     </div>
   </section>
 
+  <!-- Leadership Section -->
+  <section id="leadership" class="leadership section">
+    <div class="container section-title">
+      <h2>Leadership</h2>
+    </div>
+    <div class="container" data-aos="fade-up" data-aos-delay="100">
+      <div class="leadership-panel">
+        <p>I lead engineering teams responsible for building and operating mission-critical financial platforms including payments, engagement systems, and lending workflows.</p>
+        <ul>
+          <li>Architecture governance through ARB</li>
+          <li>Cross-functional collaboration with product and business teams</li>
+          <li>Mentoring platform engineers and technical leads</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
   <!-- Skills Section -->
   <section id="skills" class="skills section">
     <div class="container section-title">
@@ -732,7 +749,7 @@
           </div>
         </div>
 
-        <!-- 2. state-machine-amz-* -->
+        <!-- 2. Workflow State Machine Engine -->
         <div class="col-lg-6">
           <div class="card h-100 shadow-sm border-0">
             <div class="card-body">
@@ -743,27 +760,33 @@
                   </div>
                 </div>
                 <div>
-                  <h5 class="fw-bold mb-0">state-machine-amz-*</h5>
-                  <p class="text-muted mb-0">AWS States Language · Multi-language</p>
+                  <h5 class="fw-bold mb-0">Workflow State Machine Engine</h5>
+                  <p class="text-muted mb-0">Distributed Orchestration · AWS States Language</p>
                 </div>
               </div>
               <p>
-                AWS Step Functions-compatible state machine engines are implemented as libraries in multiple languages.
-                Define workflows in YAML/JSON using Amazon States Language and execute with native functions.
+                A production-grade orchestration platform that runs complex workflows using Amazon States Language
+                compatible definitions and event-driven execution primitives.
               </p>
+              <p class="fw-semibold mb-2">Architecture</p>
+              <ul class="mb-3">
+                <li><strong>Control Plane</strong> &rarr; state definitions</li>
+                <li><strong>Execution Engine</strong> &rarr; state transitions</li>
+                <li><strong>Workers</strong> &rarr; service tasks</li>
+              </ul>
 
               <div class="table-responsive mt-3">
                 <table class="table table-borderless mb-0">
                   <thead>
                   <tr class="text-muted small">
-                    <th>Language</th>
+                    <th>Component</th>
                     <th>GitHub</th>
                     <th>Status</th>
                   </tr>
                   </thead>
                   <tbody>
                   <tr>
-                    <td><strong>Go</strong></td>
+                    <td><strong>Execution Engine</strong></td>
                     <td>
                       <a href="https://github.com/hussainpithawala/state-machine-amz-go" target="_blank">
                         <i class="bi bi-github"></i> state-machine-amz-go
@@ -772,7 +795,7 @@
                     <td><span class="badge bg-success">Stable</span></td>
                   </tr>
                   <tr>
-                    <td><strong>Gin / Golang </strong></td>
+                    <td><strong>Control Plane API</strong></td>
                     <td>
                       <a href="https://github.com/hussainpithawala/state-machine-amz-gin" target="_blank">
                         <i class="bi bi-github"></i> state-machine-amz-gin
@@ -781,7 +804,7 @@
                     <td><span class="badge bg-success">Stable</span></td>
                   </tr>
                   <tr>
-                    <td><strong>React (Web-Portal) </strong></td>
+                    <td><strong>Control Plane Portal</strong></td>
                     <td>
                       <a href="https://github.com/hussainpithawala/state-machine-amz-portal" target="_blank">
                         <i class="bi bi-github"></i> state-machine-amz-portal
@@ -789,32 +812,6 @@
                     </td>
                     <td><span class="badge bg-success">Stable</span></td>
                   </tr>
-                  <tr>
-                    <td><strong>Ruby</strong></td>
-                    <td>
-                      <a href="https://github.com/hussainpithawala/state-machine-amz-ruby" target="_blank">
-                        <i class="bi bi-github"></i> state-machine-amz-ruby
-                      </a>
-                    </td>
-                    <td><span class="badge bg-success">Stable</span></td>
-                  </tr>
-                  <tr>
-                    <td><strong>Python</strong></td>
-                    <td>
-                      <a href="https://github.com/hussainpithawala/state-machine-amz-py" target="_blank">
-                        <i class="bi bi-github"></i> state-machine-amz-py
-                      </a>
-                    </td>
-                    <td><span class="badge bg-success">Stable</span></td>
-                  </tr>
-                  <!-- Add more rows as you implement -->
-                  <!--
-                  <tr>
-                    <td><strong>Python</strong></td>
-                    <td><i class="bi bi-github"></i> state-machine-amz-py</td>
-                    <td><span class="badge bg-secondary">Planned</span></td>
-                  </tr>
-                  -->
                   </tbody>
                 </table>
               </div>
