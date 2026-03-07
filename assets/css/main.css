@@ -1174,6 +1174,13 @@ section,
   color: var(--heading-color);
 }
 
+.skills .skills-grid .skill-card .skill-stack {
+  margin: 0;
+  color: color-mix(in srgb, var(--default-color), transparent 12%);
+  line-height: 1.7;
+  font-weight: 500;
+}
+
 .skills .skills-grid .skill-card .skill-item {
   margin-bottom: 20px;
 }
