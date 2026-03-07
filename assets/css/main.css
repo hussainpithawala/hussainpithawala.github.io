@@ -430,7 +430,7 @@ h6 {
 --------------------------------------------------------------*/
 @media screen and (max-width: 768px) {
   [data-aos-delay] {
-    transition-delay: 0 !important;
+    transition-delay: 0s !important;
   }
 }
 
@@ -642,22 +642,22 @@ section,
 }
 
 .hero .hero-actions {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 1rem;
   margin-bottom: 3rem;
 }
 
 @media (max-width: 768px) {
   .hero .hero-actions {
-    justify-content: center;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     margin-bottom: 2rem;
   }
 }
 
 @media (max-width: 576px) {
   .hero .hero-actions {
-    flex-direction: column;
-    align-items: center;
+    grid-template-columns: 1fr;
   }
 }
 
@@ -667,6 +667,7 @@ section,
   border-radius: 50px;
   text-decoration: none;
   transition: all 0.3s ease;
+  text-align: center;
 }
 
 .hero .hero-actions .btn.btn-primary {
