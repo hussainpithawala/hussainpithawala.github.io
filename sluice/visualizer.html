@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="en font-sans">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sluice Architecture — Interactive Blueprint</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+    /* SVG Animation definitions */
+    @keyframes dash {
+      to { stroke-dashoffset: -40; }
+    }
+    .animate-pipe-flow {
+      stroke-dasharray: 8, 12;
+      animation: dash 2s linear infinite;
+    }
+    .animate-pipe-flow-fast {
+      stroke-dasharray: 6, 8;
+      animation: dash 0.8s linear infinite;
+    }
+    .pulse-node {
+      animation: node-glow 2s ease-in-out infinite alternate;
+    }
+    @keyframes node-glow {
+      0% { filter: drop-shadow(0 0 2px rgba(45, 212, 191, 0.2)); }
+      100% { filter: drop-shadow(0 0 12px rgba(45, 212, 191, 0.7)); }
+    }
+  </style>
+  <!-- Favicons -->
+  <link href="../assets/img/favicon.png" rel="icon">
+  <link href="../assets/img/apple-touch-icon.png" rel="apple-touch-icon">
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col antialiased">
+
+<header class="border-b border-slate-900 bg-slate-950 px-8 py-5">
+  <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+    <div>
+      <h1 class="text-xl font-bold tracking-tight text-slate-100 flex items-center gap-2">
+        <i class="fa-solid fa-graduation-cap text-teal-400"></i>
+        Sluice Pipeline Mechanical Learning Blueprint
+      </h1>
+      <p class="text-xs text-slate-400 mt-1 max-w-2xl">
+        An interactive visual textbook page tracing the physical mechanics of memory isolation, pipelined cluster transport, the hot/cold read regime, dead-letter quarantine, and degraded-mode failover.
+      </p>
+    </div>
+    <div class="flex items-center gap-3 bg-slate-900 border border-slate-800 p-2 rounded-xl">
+      <span class="text-xs font-semibold text-slate-400 px-2">Simulation Engine:</span>
+      <button onclick="startSimulationLoop()" id="btn-play" class="bg-teal-500/10 hover:bg-teal-500/20 border border-teal-500/30 text-teal-400 text-xs font-bold px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5">
+        <i class="fa-solid fa-play"></i> Auto Run
+      </button>
+      <button onclick="stopSimulationLoop()" id="btn-pause" class="hidden bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-400 text-xs font-bold px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5">
+        <i class="fa-solid fa-pause"></i> Pause
+      </button>
+      <button onclick="resetSimulation()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold px-3 py-1.5 rounded-lg transition-all">
+        Reset
+      </button>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-7xl mx-auto p-6 grid grid-cols-1 lg:grid-cols-12 gap-8 flex-grow w-full">
+
+  <div class="lg:col-span-8 flex flex-col gap-4">
+    <div class="bg-slate-900/40 border border-slate-850 rounded-2xl p-4 shadow-2xl relative flex items-center justify-center min-h-[620px]">
+
+      <svg id="blueprint-canvas" viewBox="0 0 800 620" class="w-full h-full select-none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="grad-teal" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#14b8a6" />
+            <stop offset="100%" stop-color="#059669" />
+          </linearGradient>
+          <linearGradient id="grad-indigo" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#6366f1" />
+            <stop offset="100%" stop-color="#4f46e5" />
+          </linearGradient>
+          <linearGradient id="grad-rose" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#f43f5e" />
+            <stop offset="100%" stop-color="#e11d48" />
+          </linearGradient>
+          <marker id="arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 1 L 10 5 L 0 9 z" fill="#475569" />
+          </marker>
+          <marker id="arrow-active" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 1 L 10 5 L 0 9 z" fill="#2dd4bf" />
+          </marker>
+        </defs>
+
+        <g stroke="#334155" stroke-opacity="0.1" stroke-width="1">
+          <line x1="100" y1="0" x2="100" y2="500" />
+          <line x1="300" y1="0" x2="300" y2="500" />
+          <line x1="520" y1="0" x2="520" y2="500" />
+          <line x1="720" y1="0" x2="720" y2="500" />
+        </g>
+
+        <path id="track-ingest" d="M 70 120 L 130 120" stroke="#475569" stroke-width="4" fill="none" marker-end="url(#arrow)" />
+        <path id="track-copy" d="M 180 210 L 180 270" stroke="#475569" stroke-width="4" fill="none" marker-end="url(#arrow)" />
+        <path id="track-network" d="M 240 310 L 390 310" stroke="#475569" stroke-width="4" fill="none" marker-end="url(#arrow)" />
+        <path id="track-drain" d="M 450 370 L 450 410" stroke="#475569" stroke-width="4" fill="none" marker-end="url(#arrow)" />
+        <path id="track-sink" d="M 510 440 L 660 440 L 660 360" stroke="#475569" stroke-width="4" fill="none" marker-end="url(#arrow)" />
+        <path id="track-zrem" d="M 660 260 L 660 160 L 510 160" stroke="#475569" stroke-width="4" fill="none" stroke-dasharray="4,4" marker-end="url(#arrow)" />
+        <path id="track-dlq" d="M 390 442 L 350 442 L 350 185 L 600 185" stroke="#475569" stroke-width="4" fill="none" stroke-dasharray="4,4" marker-end="url(#arrow)" />
+        <path id="track-dlq-drain" d="M 660 230 L 660 260" stroke="#475569" stroke-width="4" fill="none" marker-end="url(#arrow)" />
+        <path id="track-degraded" d="M 40 160 L 40 480 L 660 480 L 660 360" stroke="#475569" stroke-width="3" fill="none" stroke-dasharray="2,6" marker-end="url(#arrow)" opacity="0.5" />
+        <path id="track-cold-fetch" d="M 590 515 L 590 360" stroke="#475569" stroke-width="4" fill="none" marker-end="url(#arrow)" />
+        <path id="track-hot-seed" d="M 470 515 L 470 370" stroke="#475569" stroke-width="4" fill="none" stroke-dasharray="4,4" marker-end="url(#arrow)" />
+        <path id="track-hot-read" d="M 490 515 L 490 370" stroke="#475569" stroke-width="3" fill="none" marker-end="url(#arrow)" />
+        <path id="track-app-write" d="M 505 515 L 505 370" stroke="#475569" stroke-width="3" fill="none" marker-end="url(#arrow)" />
+
+        <path id="flow-ingest" d="M 70 120 L 130 120" stroke="transparent" stroke-width="4" fill="none" />
+        <path id="flow-copy" d="M 180 210 L 180 270" stroke="transparent" stroke-width="4" fill="none" />
+        <path id="flow-network" d="M 240 310 L 390 310" stroke="transparent" stroke-width="4" fill="none" />
+        <path id="flow-drain" d="M 450 370 L 450 410" stroke="transparent" stroke-width="4" fill="none" />
+        <path id="flow-sink" d="M 510 440 L 660 440 L 660 360" stroke="transparent" stroke-width="4" fill="none" />
+        <path id="flow-zrem" d="M 660 260 L 660 160 L 510 160" stroke="transparent" stroke-width="4" fill="none" />
+        <path id="flow-dlq" d="M 390 442 L 350 442 L 350 185 L 600 185" stroke="transparent" stroke-width="4" fill="none" />
+        <path id="flow-dlq-drain" d="M 660 230 L 660 260" stroke="transparent" stroke-width="4" fill="none" />
+        <path id="flow-degraded" d="M 40 160 L 40 480 L 660 480 L 660 360" stroke="transparent" stroke-width="3" fill="none" />
+        <path id="flow-cold-fetch" d="M 590 515 L 590 360" stroke="transparent" stroke-width="4" fill="none" />
+        <path id="flow-hot-seed" d="M 470 515 L 470 370" stroke="transparent" stroke-width="4" fill="none" />
+        <path id="flow-hot-read" d="M 490 515 L 490 370" stroke="transparent" stroke-width="3" fill="none" />
+        <path id="flow-app-write" d="M 505 515 L 505 370" stroke="transparent" stroke-width="3" fill="none" />
+
+        <g transform="translate(10, 80)" class="cursor-pointer" onclick="stepIngest()">
+          <rect width="60" height="80" rx="8" fill="#1e293b" stroke="#475569" stroke-width="2" />
+          <text x="30" y="35" text-anchor="middle" fill="#94a3b8" font-size="10" font-weight="bold">CONSUMER</text>
+          <text x="30" y="55" text-anchor="middle" fill="#2dd4bf" font-size="12" font-weight="bold" class="mono">s.Write()</text>
+          <circle cx="30" cy="70" r="4" fill="#2dd4bf" class="pulse-active" />
+        </g>
+
+        <g transform="translate(130, 60)">
+          <rect width="100" height="150" rx="12" fill="#0f172a" stroke="#334155" stroke-width="3" />
+          <rect id="buffer-liquid" x="3" y="147" width="94" height="0" rx="4" fill="url(#grad-teal)" opacity="0.35" class="transition-all duration-500" />
+          <text x="50" y="25" text-anchor="middle" fill="#e2e8f0" font-size="11" font-weight="bold">GO CHANNEL</text>
+          <text x="50" y="40" text-anchor="middle" fill="#64748b" font-size="9" class="mono">Capacity Queue</text>
+          <text id="txt-buffer-count" x="50" y="85" text-anchor="middle" fill="#38bdf8" font-size="24" font-weight="800" class="mono">0</text>
+          <text x="50" y="105" text-anchor="middle" fill="#475569" font-size="10">buffered items</text>
+          <circle id="lamp-backpressure" cx="50" cy="130" r="6" fill="#334155" />
+          <text id="txt-backpressure" x="50" y="142" text-anchor="middle" fill="#475569" font-size="8" font-weight="bold">OK</text>
+        </g>
+
+        <g transform="translate(120, 270)">
+          <rect width="120" height="70" rx="10" fill="#1e293b" stroke="#475569" stroke-width="2" id="box-copy-gate" />
+          <text x="60" y="25" text-anchor="middle" fill="#e2e8f0" font-size="11" font-weight="bold">THREAD ISOLATION</text>
+          <text x="60" y="42" text-anchor="middle" fill="#94a3b8" font-size="10" class="mono" id="txt-copy-gate">copy(ready, buf)</text>
+          <rect id="strip-copy" x="10" y="52" width="100" height="8" rx="2" fill="#334155" />
+        </g>
+
+        <g transform="translate(390, 110)">
+          <rect width="120" height="260" rx="16" fill="#0f172a" stroke="#f43f5e" stroke-width="3" stroke-opacity="0.6" id="box-redis" />
+          <text x="60" y="20" text-anchor="middle" fill="#f43f5e" font-size="11" font-weight="extrabold">REDIS CLUSTER</text>
+          <text x="60" y="32" text-anchor="middle" fill="#64748b" font-size="7" font-weight="bold" class="mono" id="txt-redis-topology">CME · 4 SHARDS · 16 BANDS</text>
+
+          <g transform="translate(10, 45)">
+            <rect width="100" height="80" rx="6" fill="#1e1b4b" stroke="#312e81" />
+            <text x="50" y="18" text-anchor="middle" fill="#c084fc" font-size="10" font-weight="bold">HSET (Payloads)</text>
+            <text id="txt-redis-hash" x="50" y="46" text-anchor="middle" fill="#e9d5ff" font-size="16" font-weight="bold" class="mono">0</text>
+            <text id="txt-hot-count" x="50" y="68" text-anchor="middle" fill="#facc15" font-size="8" font-weight="bold">0 hot · TTL 4h</text>
+          </g>
+
+          <g transform="translate(10, 145)">
+            <rect width="100" height="95" rx="6" fill="#881337" stroke="#4c0519" />
+            <text x="50" y="18" text-anchor="middle" fill="#fda4af" font-size="10" font-weight="bold">ZSET (Dirty Band)</text>
+            <text id="txt-redis-zset" x="50" y="52" text-anchor="middle" fill="#ffe4e6" font-size="20" font-weight="bold" class="mono">0</text>
+            <text x="50" y="75" text-anchor="middle" fill="#f43f5e" font-size="9" font-weight="medium" id="txt-coalesce-saved">0 Deduplicated</text>
+          </g>
+
+          <circle id="lamp-redis-health" cx="108" cy="14" r="5" fill="#10b981" />
+        </g>
+
+        <g transform="translate(390, 410)">
+          <rect width="120" height="65" rx="10" fill="#1e293b" stroke="#475569" stroke-width="2" id="box-flush-pump" />
+          <text x="60" y="25" text-anchor="middle" fill="#e2e8f0" font-size="11" font-weight="bold">FLUSH PUMP</text>
+          <text x="60" y="45" text-anchor="middle" fill="#a1a1aa" font-size="7" font-weight="bold" id="txt-pump-trigger">TIME · VOLUME · PRE-EVICT · HOT</text>
+          <circle cx="20" cy="45" r="6" fill="none" stroke="#475569" stroke-width="2" id="pump-gear" />
+        </g>
+
+        <g transform="translate(600, 260)">
+          <rect width="120" height="100" rx="12" fill="#064e3b" stroke="#059669" stroke-width="3" id="box-mongo" />
+          <text x="60" y="30" text-anchor="middle" fill="#a7f3d0" font-size="12" font-weight="extrabold">DOCUMENT SINK</text>
+          <text x="60" y="48" text-anchor="middle" fill="#34d399" font-size="10" font-weight="bold" class="mono">BulkWrite()</text>
+
+          <rect x="15" y="60" width="90" height="25" rx="4" fill="#022c22" stroke="#047857" />
+          <text id="txt-mongo-docs" x="60" y="76" text-anchor="middle" fill="#6ee7b7" font-size="12" font-weight="bold" class="mono">0 Docs</text>
+        </g>
+
+        <g transform="translate(600, 140)">
+          <rect width="120" height="90" rx="10" fill="#1c1917" stroke="#78350f" stroke-width="2.5" id="box-dlq" />
+          <text x="60" y="20" text-anchor="middle" fill="#fbbf24" font-size="10" font-weight="extrabold">DEAD-LETTER ZSET</text>
+          <text x="60" y="32" text-anchor="middle" fill="#78716c" font-size="7" class="mono">non-retryable · TTL 7d</text>
+          <text id="txt-dlq-count" x="60" y="60" text-anchor="middle" fill="#fcd34d" font-size="18" font-weight="bold" class="mono">0</text>
+          <text x="60" y="76" text-anchor="middle" fill="#a8a29e" font-size="8" id="txt-dlq-label">quarantined keys</text>
+        </g>
+
+        <g transform="translate(255, 275)" opacity="0.85">
+          <rect width="120" height="26" rx="4" fill="#0f172a" stroke="#334155" />
+          <text x="60" y="16" text-anchor="middle" fill="#38bdf8" font-size="10" font-weight="medium" class="mono" id="txt-pipeline-overhead">1 RTT / Batch</text>
+        </g>
+
+        <g transform="translate(430, 515)">
+          <rect width="200" height="70" rx="12" fill="#0f172a" stroke="#818cf8" stroke-width="2.5" id="box-application" />
+          <text x="100" y="24" text-anchor="middle" fill="#c7d2fe" font-size="11" font-weight="bold">APPLICATION / API</text>
+          <text x="100" y="40" text-anchor="middle" fill="#64748b" font-size="8" class="mono">Write() / HotLoad() / Read()</text>
+          <text x="35" y="58" text-anchor="middle" fill="#818cf8" font-size="7" font-weight="bold">hot-seed ↑</text>
+          <text x="75" y="58" text-anchor="middle" fill="#a5b4fc" font-size="7" font-weight="bold">write ↑</text>
+          <text x="160" y="58" text-anchor="middle" fill="#94a3b8" font-size="7" font-weight="bold">cold fetch ↑</text>
+        </g>
+      </svg>
+
+    </div>
+  </div>
+
+  <div class="lg:col-span-4 flex flex-col gap-6">
+
+    <div class="bg-slate-900/60 border border-slate-850 rounded-2xl p-5 shadow-xl">
+      <h2 class="text-xs font-bold tracking-widest text-teal-400 uppercase mb-4 flex items-center gap-1.5">
+        <i class="fa-solid fa-sliders"></i> Execution Controls
+      </h2>
+
+      <div class="space-y-4">
+        <div>
+          <span class="block text-xs text-slate-400 font-medium mb-2">1. Select Target Record Unique Field ID</span>
+          <div class="grid grid-cols-2 gap-2 font-mono text-xs">
+            <button onclick="setKeySelection('user_unique_A')" class="key-selector-blueprint px-2.5 py-2 rounded-xl border border-teal-500/40 bg-teal-500/10 text-teal-300 font-bold text-left flex justify-between items-center" id="sel-user_unique_A">
+              <span>user_unique_A</span>
+              <span class="text-[9px] px-1 bg-teal-500/20 text-teal-400 rounded">New</span>
+            </button>
+            <button onclick="setKeySelection('user_unique_B')" class="key-selector-blueprint px-2.5 py-2 rounded-xl border border-slate-800 bg-slate-900 text-slate-400 text-left flex justify-between items-center" id="sel-user_unique_B">
+              <span>user_unique_B</span>
+              <span class="text-[9px] px-1 bg-teal-500/20 text-teal-400 rounded">New</span>
+            </button>
+            <button onclick="setKeySelection('user_hot_spot')" class="key-selector-blueprint px-2.5 py-2 rounded-xl border border-slate-800 bg-slate-900 text-slate-400 text-left flex justify-between items-center col-span-2" id="sel-user_hot_spot">
+              <span>user_hot_spot (Simulate Duplicate Collision)</span>
+              <span class="text-[9px] px-1 bg-indigo-500/20 text-indigo-400 rounded">Dedupe Match</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="pt-2">
+          <button onclick="stepIngest()" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-100 font-bold py-2.5 px-4 rounded-xl text-xs transition-all border border-slate-700 flex items-center justify-between">
+            <span>Inject Single Write Payload</span>
+            <span class="font-mono bg-slate-950 px-2 py-0.5 rounded text-teal-400">s.Write() →</span>
+          </button>
+        </div>
+
+        <div class="border-t border-slate-800/80 pt-4 space-y-2">
+          <span class="block text-xs text-slate-400 font-medium mb-1">2. Fire Architectural Stages Manually</span>
+
+          <button onclick="triggerMemoryCopyPipeline()" id="btn-mech-batch" class="w-full bg-slate-900 hover:bg-slate-850 text-slate-200 text-xs font-semibold py-2 px-3 rounded-lg border border-slate-800 text-left flex items-center justify-between transition-all">
+                            <span class="flex items-center gap-2">
+                                <i class="fa-solid fa-box-archive text-amber-400"></i>
+                                Execute Memory Copy & Pipeline
+                            </span>
+            <i class="fa-solid fa-angle-right text-slate-600"></i>
+          </button>
+
+          <button onclick="triggerEngineBulkFlush()" id="btn-mech-flush" class="w-full bg-slate-900 hover:bg-slate-850 text-slate-200 text-xs font-semibold py-2 px-3 rounded-lg border border-slate-800 text-left flex items-center justify-between transition-all">
+                            <span class="flex items-center gap-2">
+                                <i class="fa-solid fa-dumpster-fire text-indigo-400"></i>
+                                Drain Band & Invoke BulkWrite
+                            </span>
+            <i class="fa-solid fa-angle-right text-slate-600"></i>
+          </button>
+        </div>
+
+        <div class="border-t border-slate-800/80 pt-4 space-y-2">
+          <span class="block text-xs text-slate-400 font-medium mb-1">3. Hot/Cold Read + Write Path</span>
+
+          <button onclick="appHotWrite()" id="btn-app-write" class="w-full bg-slate-900 hover:bg-slate-850 text-slate-200 text-xs font-semibold py-2 px-3 rounded-lg border border-slate-800 text-left flex items-center justify-between transition-all">
+                            <span class="flex items-center gap-2">
+                                <i class="fa-solid fa-arrow-up-from-bracket text-indigo-300"></i>
+                                Write() — Synchronous Hot Write from API
+                            </span>
+            <i class="fa-solid fa-angle-right text-slate-600"></i>
+          </button>
+
+          <button onclick="hotLoad()" id="btn-hotload" class="w-full bg-slate-900 hover:bg-slate-850 text-slate-200 text-xs font-semibold py-2 px-3 rounded-lg border border-slate-800 text-left flex items-center justify-between transition-all">
+                            <span class="flex items-center gap-2">
+                                <i class="fa-solid fa-fire text-amber-400"></i>
+                                HotLoad() — Promote Key to Hot
+                            </span>
+            <i class="fa-solid fa-angle-right text-slate-600"></i>
+          </button>
+
+          <button onclick="readKey()" id="btn-read" class="w-full bg-slate-900 hover:bg-slate-850 text-slate-200 text-xs font-semibold py-2 px-3 rounded-lg border border-slate-800 text-left flex items-center justify-between transition-all">
+                            <span class="flex items-center gap-2">
+                                <i class="fa-solid fa-bolt text-teal-400"></i>
+                                Read() — Hot or Cold Fallback
+                            </span>
+            <i class="fa-solid fa-angle-right text-slate-600"></i>
+          </button>
+
+          <button onclick="toggleHotAwareFlush()" id="btn-toggle-hotaware" class="w-full bg-teal-500/10 hover:bg-teal-500/20 text-slate-200 text-xs font-semibold py-2 px-3 rounded-lg border border-teal-500/40 text-left flex items-center justify-between transition-all">
+                            <span class="flex items-center gap-2">
+                                <i class="fa-solid fa-clock-rotate-left text-teal-400"></i>
+                                <span id="txt-hotaware-label">Hot-Aware Flush: ON (TTL → 4h)</span>
+                            </span>
+            <i class="fa-solid fa-angle-right text-slate-600"></i>
+          </button>
+          <p class="text-[9px] text-slate-500 leading-relaxed px-1">Also configurable but not modeled here: xxHash64 content dedup, secondary indexes with <code class="text-slate-400">Query()</code>, and <code class="text-slate-400">WriteIdempotent</code>.</p>
+        </div>
+
+        <div class="border-t border-slate-800/80 pt-4 space-y-2">
+          <span class="block text-xs text-slate-400 font-medium mb-1">4. Inject Failure Scenarios</span>
+
+          <button onclick="armDlqFailure()" id="btn-arm-dlq" class="w-full bg-slate-900 hover:bg-slate-850 text-slate-200 text-xs font-semibold py-2 px-3 rounded-lg border border-slate-800 text-left flex items-center justify-between transition-all">
+                            <span class="flex items-center gap-2">
+                                <i class="fa-solid fa-triangle-exclamation text-amber-400"></i>
+                                Arm Non-Retryable Contract Violation
+                            </span>
+            <i class="fa-solid fa-angle-right text-slate-600"></i>
+          </button>
+
+          <button onclick="processDlq()" id="btn-process-dlq" class="w-full bg-slate-900 hover:bg-slate-850 text-slate-200 text-xs font-semibold py-2 px-3 rounded-lg border border-slate-800 text-left flex items-center justify-between transition-all">
+                            <span class="flex items-center gap-2">
+                                <i class="fa-solid fa-heart-pulse text-amber-400"></i>
+                                ProcessDLQ (Heal & Upsert)
+                            </span>
+            <i class="fa-solid fa-angle-right text-slate-600"></i>
+          </button>
+
+          <button onclick="toggleRedisOutage()" id="btn-toggle-outage" class="w-full bg-slate-900 hover:bg-slate-850 text-slate-200 text-xs font-semibold py-2 px-3 rounded-lg border border-slate-800 text-left flex items-center justify-between transition-all">
+                            <span class="flex items-center gap-2">
+                                <i class="fa-solid fa-plug-circle-xmark text-rose-400"></i>
+                                <span id="txt-outage-label">Simulate Redis Cluster Outage</span>
+                            </span>
+            <i class="fa-solid fa-angle-right text-slate-600"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-slate-900/60 border border-slate-850 rounded-2xl p-5 shadow-xl flex-grow flex flex-col justify-between">
+      <div>
+        <h3 class="text-xs font-bold tracking-widest text-slate-400 uppercase mb-3 flex items-center gap-1.5">
+          <i class="fa-solid fa-book-open text-indigo-400"></i> Mechanical Motion Insight
+        </h3>
+        <div id="learning-insight-box" class="text-xs text-slate-300 leading-relaxed bg-slate-950/60 border border-slate-850 p-4 rounded-xl font-medium min-h-[140px] flex flex-col justify-center">
+          Select an action or fire a lifecycle trigger above to observe particle motion properties and understand architectural design trade-offs.
+        </div>
+      </div>
+
+      <div class="border-t border-slate-800/80 pt-4 mt-4">
+        <div class="flex justify-between items-center text-[11px] text-slate-400 mb-1">
+          <span>Total Input Writes:</span>
+          <span id="lbl-writes" class="font-mono font-bold text-slate-200">0</span>
+        </div>
+        <div class="flex justify-between items-center text-[11px] text-slate-400 mb-1">
+          <span>Physical Document updates:</span>
+          <span id="lbl-mongo" class="font-mono font-bold text-emerald-400">0</span>
+        </div>
+        <div class="flex justify-between items-center text-[11px] text-slate-400 mb-1">
+          <span>Network Unification Savings:</span>
+          <span id="lbl-savings" class="font-mono font-bold text-teal-400">0 RTT cycles bypassed</span>
+        </div>
+        <div class="flex justify-between items-center text-[11px] text-slate-400 mb-1">
+          <span>Quarantined in DLQ:</span>
+          <span id="lbl-dlq" class="font-mono font-bold text-amber-400">0</span>
+        </div>
+        <div class="flex justify-between items-center text-[11px] text-slate-400">
+          <span>Degraded-Mode Direct Writes:</span>
+          <span id="lbl-degraded" class="font-mono font-bold text-rose-400">0</span>
+        </div>
+        <div class="flex justify-between items-center text-[11px] text-slate-400 mb-1 pt-2 mt-2 border-t border-slate-800/60">
+          <span>Reads Served:</span>
+          <span id="lbl-reads" class="font-mono font-bold text-slate-200">0</span>
+        </div>
+        <div class="flex justify-between items-center text-[11px] text-slate-400">
+          <span>Hot-Path Hit Rate:</span>
+          <span id="lbl-hit-rate" class="font-mono font-bold text-teal-400">—</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<script>
+  // Reactive Memory Engine Properties
+  let targetKeySelection = 'user_unique_A';
+  let channelBufferStack = [];
+  let redisStorePayloads = {};
+  let redisStoreZSet = {}; // key -> ts
+  let mongoAcknowledgedStore = {};
+
+  let statsWrites = 0;
+  let statsMongoDocs = 0;
+  let statsSavingsRTT = 0;
+  let deduplicatedCount = 0;
+
+  // Cluster-mode-enabled failure/DLQ/degraded-mode state
+  let dlqStore = {};
+  let dlqArmed = false;
+  let redisAvailable = true;
+  let statsDegradedWrites = 0;
+
+  // Hot/Cold read regime state
+  let hotMarkers = {};
+  let hotAwareFlush = true;
+  let statsReads = 0;
+  let statsHotReads = 0;
+
+  let autoIntervalTimer = null;
+
+  // Interactive Stage Explanations Text Ledger
+  const insights = {
+    'idle': '<strong>System Status: Idle</strong><br><br>The client application pipeline is waiting for inbound streams. Network sockets are resting, and no data blocks or database transactions are actively processing.',
+    'write': '<strong>Stage 1: s.Write() Enqueue</strong><br><br>An asynchronous uncoordinated worker pushes data into a <code>chan writeEntry</code> buffer pool. This step executes entirely in local memory, clocking sub-microsecond return latencies for upstream consumers.',
+    'copy': '<strong>Stage 2: Thread Memory Allocation Lock</strong><br><br>Sluice calls <code>copy(ready, buf)</code> to separate the target batch pointer references from active concurrent client channel access threads. This completely mitigates data race vulnerabilities without requiring heavy structural mutex blockers.',
+    'pipeline': '<strong>Stage 3: Pipelined Write Unification</strong><br><br>Sluice flushes the batch payload to a <strong>cluster-mode-enabled</strong> Redis shard inside one multi-bulk pipeline payload — the hash-tagged key routes deterministically to its owning band and shard, covering dozens of <code>EvalSha</code> executions in exactly one round-trip.',
+    'coalesce': '<strong>Insight: Structural ZSET Coalescing</strong><br><br>Notice how duplicate keys do not append new entries inside the Redis Sorted Set. Redis updates the timestamp score in place, meaning repetitive historical records are dynamically collapsed inside the storage layer.',
+    'bulk': '<strong>Stage 4: Document Store BulkWrite</strong><br><br>The four-trigger background worker (time / volume / pre-eviction / hot) fetches keys using <code>ZRANGEBYSCORE</code>, collects the data via a fast pipelined <code>HMGET</code> request, and executes an unordered (<code>ordered=false</code>) <code>BulkWrite</code> to MongoDB. This amortizes journaling overhead and database lock allocations.',
+    'zrem': '<strong>Stage 5: At-Least-Once Handshake Pruning</strong><br><br>Only after MongoDB safely sends a network validation ACK receipt does Sluice issue a <code>ZREM</code> cleanup request to remove keys from the dirty log. This ensures that if a crash occurs mid-write, the data remains safely logged in the Redis journal for a retry recovery pass. If <strong>Hot-Aware Flush</strong> is on, the payload itself stays resident — only the dirty-set entry is removed.',
+    'dlq': '<strong>Failure Path: Dead-Letter Quarantine</strong><br><br>When <code>BulkWrite</code> hits a non-retryable error — a <code>WriteContract</code> violation or a unique-index collision — the offending keys are moved to a per-band dead-letter <code>ZSET</code> with the payload TTL extended to 7 days, instead of being dropped or retried forever.',
+    'dlq-process': '<strong>Recovery: ProcessDLQ (Heal & Upsert)</strong><br><br><code>DLQUpsert</code> re-runs the <code>WriteContract</code> against the quarantined payload and force-overwrites the document. Toggling a healing flag inside the contract before this call lets bad records be corrected at recovery time without touching the DLQ data itself.',
+    'degraded': '<strong>Failure Path: Degraded-Mode Direct Write</strong><br><br>With the Redis cluster unavailable and <code>DegradedModeDirect = true</code>, <code>sluice.Write()</code> bypasses the journal entirely and applies the <code>WriteContract</code> straight to the document store. Throughput drops to one round-trip per event, but no writes are lost or rejected.',
+    'hotload': '<strong>Read Path: HotLoad()</strong><br><br>Typically called on user login. <code>HotLoad</code> runs the <code>ReadContract</code> against the <code>Source</code> to fetch the document, then seeds the journal with an <code>HSET</code> payload and a hot marker (<code>sl:{ns}:hot:{band}:{corrKey}</code>) with TTL = <code>ActivityWindow</code> (default 4h). The key is now resident for sub-millisecond reads.',
+    'read-hot': '<strong>Read Path: Hot Hit</strong><br><br><code>Read()</code> pipelines an <code>HGET</code> + <code>PTTL</code> against the journal and returns in sub-millisecond time — the document store is never touched. If the remaining TTL has fallen below 20% of <code>ActivityWindow</code>, the hot marker and payload TTL are refreshed synchronously (lazy refresh on read).',
+    'read-cold': '<strong>Read Path: Cold Miss</strong><br><br>No payload is resident in the journal for this key. <code>Read()</code> falls back to the <code>ReadContract</code> against the <code>Source</code> — one <code>FindOne</code> against DocumentDB — or returns <code>ErrRecordNotFound</code> if nothing exists there either.',
+    'app-write': '<strong>Hot Write: Synchronous API Path</strong><br><br>The Application calls <code>sluice.Write()</code> directly — the same atomic <code>HSET</code> + <code>EXPIRE</code> + <code>ZADD</code> Lua script the async consumers use, just invoked synchronously instead of arriving via SQS/Kafka. The journal is now current for this key regardless of which path wrote it.',
+    'hot-trigger': '<strong>Hot Trigger: Immediate Flush Signal</strong><br><br>Because this correlation_key carries an active hot marker, the write signals its band flush goroutine immediately instead of waiting for the time or volume trigger — <code>HotAwareFlush</code> keeps synchronous session reads current with the write that just happened.'
+  };
+
+  function setInsight(type) {
+    document.getElementById('learning-insight-box').innerHTML = insights[type];
+  }
+
+  function setKeySelection(key) {
+    targetKeySelection = key;
+    document.querySelectorAll('.key-selector-blueprint').forEach(btn => {
+      btn.className = "key-selector-blueprint px-2.5 py-2 rounded-xl border border-slate-800 bg-slate-900 text-slate-400 text-left flex justify-between items-center";
+    });
+    document.getElementById(`sel-${key}`).className = "key-selector-blueprint px-2.5 py-2 rounded-xl border border-teal-500/40 bg-teal-500/10 text-teal-300 font-bold text-left flex justify-between items-center";
+  }
+
+  // Action Step 1: s.Write Processing
+  function stepIngest() {
+    if (!redisAvailable) {
+      stepDegradedWrite();
+      return;
+    }
+
+    if (channelBufferStack.length >= 10) {
+      setInsight('write');
+      document.getElementById('lamp-backpressure').setAttribute('fill', '#ef4444');
+      document.getElementById('txt-backpressure').setAttribute('fill', '#fecaca');
+      document.getElementById('txt-backpressure').textContent = "BACKPRESSURE FULL";
+      return;
+    }
+
+    statsWrites++;
+    channelBufferStack.push(targetKeySelection);
+
+    // Trigger flow animation along the track
+    animatePathFlow('flow-ingest', '#2dd4bf', 'animate-pipe-flow-fast');
+    setInsight('write');
+
+    updateVisualLedgers();
+
+    setTimeout(() => {
+      clearPathFlow('flow-ingest');
+      if (channelBufferStack.length >= 6) {
+        triggerMemoryCopyPipeline();
+      }
+    }, 500);
+  }
+
+  // Action Step 2: Thread Copy Gate & Redis Pipeline Transport Execution
+  async function triggerMemoryCopyPipeline() {
+    if (channelBufferStack.length === 0) return;
+
+    // Animate Memory Isolation Gate
+    setInsight('copy');
+    const gateBox = document.getElementById('box-copy-gate');
+    const indicatorStrip = document.getElementById('strip-copy');
+
+    gateBox.setAttribute('stroke', '#f59e0b');
+    indicatorStrip.setAttribute('fill', '#f59e0b');
+
+    animatePathFlow('flow-copy', '#f59e0b', 'animate-pipe-flow');
+    await sleep(600);
+
+    // Extract local elements mock copy routines
+    let clearingBatch = [...channelBufferStack];
+    channelBufferStack = [];
+    updateVisualLedgers();
+
+    clearPathFlow('flow-copy');
+    gateBox.setAttribute('stroke', '#475569');
+    indicatorStrip.setAttribute('fill', '#10b981');
+
+    // Transit via Single Unified Pipeline
+    setInsight('pipeline');
+    animatePathFlow('flow-network', '#38bdf8', 'animate-pipe-flow-fast');
+    document.getElementById('box-redis').setAttribute('stroke', '#38bdf8');
+    await sleep(800);
+
+    // Pop elements inside Simulated Redis structures
+    clearingBatch.forEach(key => {
+      if (redisStoreZSet[key]) {
+        deduplicatedCount++;
+      }
+      redisStorePayloads[key] = { data: "stub", ts: Date.now() };
+      redisStoreZSet[key] = Date.now();
+
+      // Track round-trip savings ratios
+      statsSavingsRTT++;
+    });
+
+    statsSavingsRTT--; // precisely 1 RTT was consumed for the entire block execution batch
+
+    clearPathFlow('flow-network');
+    document.getElementById('box-redis').setAttribute('stroke', '#f43f5e');
+
+    if (deduplicatedCount > 0) {
+      setInsight('coalesce');
+    }
+
+    updateVisualLedgers();
+  }
+
+  // Action Step 3: Drain Band & MongoDB Sink BulkWrite Transaction Routine
+  async function triggerEngineBulkFlush() {
+    const redisKeysCount = Object.keys(redisStoreZSet).length;
+    if (redisKeysCount === 0) return;
+
+    setInsight('bulk');
+    document.getElementById('box-flush-pump').setAttribute('stroke', '#6366f1');
+    animatePathFlow('flow-drain', '#6366f1', 'animate-pipe-flow');
+
+    // Rotate graphic element pump component wheels
+    document.getElementById('pump-gear').setAttribute('stroke', '#6366f1');
+    await sleep(700);
+    clearPathFlow('flow-drain');
+
+    if (dlqArmed) {
+      // Simulated non-retryable WriteContract violation — route to DLQ instead of Mongo
+      setInsight('dlq');
+      animatePathFlow('flow-dlq', '#f59e0b', 'animate-pipe-flow');
+      document.getElementById('box-dlq').setAttribute('stroke', '#fbbf24');
+      await sleep(900);
+
+      for (let key in redisStoreZSet) {
+        dlqStore[key] = { data: "stub", ts: Date.now() };
+      }
+      dlqArmed = false;
+      document.getElementById('btn-arm-dlq').classList.remove('border-amber-500/60', 'bg-amber-500/10');
+      updateVisualLedgers();
+      clearPathFlow('flow-dlq');
+      document.getElementById('box-dlq').setAttribute('stroke', '#78350f');
+    } else {
+      // Send elements directly across wire target to Mongo
+      animatePathFlow('flow-sink', '#10b981', 'animate-pipe-flow');
+      document.getElementById('box-mongo').setAttribute('stroke', '#6ee7b7');
+      await sleep(900);
+
+      // Transfer allocations directly to storage arrays
+      for (let key in redisStoreZSet) {
+        mongoAcknowledgedStore[key] = true;
+        statsMongoDocs++;
+      }
+      updateVisualLedgers();
+      clearPathFlow('flow-sink');
+      document.getElementById('box-mongo').setAttribute('stroke', '#059669');
+    }
+
+    // Final Post-Write transactional cleanup handshake routine (ZREM)
+    setInsight('zrem');
+    animatePathFlow('flow-zrem', '#f43f5e', 'animate-pipe-flow');
+    await sleep(800);
+
+    // Clear the dirty-set entries; payload residency depends on Hot-Aware Flush
+    redisStoreZSet = {};
+    deduplicatedCount = 0;
+    if (!hotAwareFlush) {
+      redisStorePayloads = {};
+    }
+
+    clearPathFlow('flow-zrem');
+    document.getElementById('box-flush-pump').setAttribute('stroke', '#475569');
+    document.getElementById('pump-gear').setAttribute('stroke', '#475569');
+
+    updateVisualLedgers();
+  }
+
+  // Write Path: Write() called synchronously from the Application/API actor —
+  // same atomic HSET+EXPIRE+ZADD as the async consumer path, plus a hot-trigger
+  // immediate flush if the key already carries an active hot marker.
+  async function appHotWrite() {
+    const key = targetKeySelection;
+    setInsight('app-write');
+    statsWrites++;
+
+    animatePathFlow('flow-app-write', '#a5b4fc', 'animate-pipe-flow-fast');
+    document.getElementById('box-application').setAttribute('stroke', '#a5b4fc');
+    document.getElementById('box-redis').setAttribute('stroke', '#a5b4fc');
+    await sleep(500);
+
+    if (redisStoreZSet[key]) {
+      deduplicatedCount++;
+    }
+    redisStorePayloads[key] = { data: "stub", ts: Date.now() };
+    redisStoreZSet[key] = Date.now();
+    statsSavingsRTT++; // HSET + EXPIRE + ZADD land in one atomic round-trip
+
+    clearPathFlow('flow-app-write');
+    document.getElementById('box-redis').setAttribute('stroke', '#f43f5e');
+    document.getElementById('box-application').setAttribute('stroke', '#818cf8');
+    updateVisualLedgers();
+
+    if (hotMarkers[key]) {
+      await sleep(250);
+      setInsight('hot-trigger');
+      await sleep(500);
+      await triggerEngineBulkFlush();
+    }
+  }
+
+  // Read Path: HotLoad() — fetch from Source, seed the journal + hot marker
+  async function hotLoad() {
+    const key = targetKeySelection;
+    setInsight('hotload');
+
+    animatePathFlow('flow-cold-fetch', '#94a3b8', 'animate-pipe-flow');
+    document.getElementById('box-mongo').setAttribute('stroke', '#6ee7b7');
+    await sleep(700);
+    clearPathFlow('flow-cold-fetch');
+    document.getElementById('box-mongo').setAttribute('stroke', '#059669');
+
+    animatePathFlow('flow-hot-seed', '#fbbf24', 'animate-pipe-flow');
+    document.getElementById('box-redis').setAttribute('stroke', '#fbbf24');
+    document.getElementById('box-application').setAttribute('stroke', '#fbbf24');
+    await sleep(600);
+
+    redisStorePayloads[key] = { data: "warmed-via-hotload", ts: Date.now() };
+    hotMarkers[key] = true;
+
+    clearPathFlow('flow-hot-seed');
+    document.getElementById('box-redis').setAttribute('stroke', '#f43f5e');
+    document.getElementById('box-application').setAttribute('stroke', '#818cf8');
+    updateVisualLedgers();
+  }
+
+  // Read Path: Read() — hot hit from the journal, or cold fallback to the Source
+  async function readKey() {
+    const key = targetKeySelection;
+    statsReads++;
+
+    if (redisStorePayloads[key]) {
+      setInsight('read-hot');
+      statsHotReads++;
+      animatePathFlow('flow-hot-read', '#2dd4bf', 'animate-pipe-flow-fast');
+      document.getElementById('box-redis').setAttribute('stroke', '#2dd4bf');
+      document.getElementById('box-application').setAttribute('stroke', '#2dd4bf');
+      await sleep(400);
+      clearPathFlow('flow-hot-read');
+      document.getElementById('box-redis').setAttribute('stroke', '#f43f5e');
+    } else {
+      setInsight('read-cold');
+      animatePathFlow('flow-cold-fetch', '#94a3b8', 'animate-pipe-flow');
+      document.getElementById('box-mongo').setAttribute('stroke', '#6ee7b7');
+      await sleep(700);
+      clearPathFlow('flow-cold-fetch');
+      document.getElementById('box-mongo').setAttribute('stroke', '#059669');
+    }
+    document.getElementById('box-application').setAttribute('stroke', '#818cf8');
+    updateVisualLedgers();
+  }
+
+  // Toggle Hot-Aware Flush — controls whether committed payloads stay resident after a drain
+  function toggleHotAwareFlush() {
+    hotAwareFlush = !hotAwareFlush;
+    const btn = document.getElementById('btn-toggle-hotaware');
+    const label = document.getElementById('txt-hotaware-label');
+    if (hotAwareFlush) {
+      label.textContent = 'Hot-Aware Flush: ON (TTL → 4h)';
+      btn.classList.add('border-teal-500/40', 'bg-teal-500/10');
+      btn.classList.remove('border-slate-800', 'bg-slate-900');
+    } else {
+      label.textContent = 'Hot-Aware Flush: OFF (TTL → 30s)';
+      btn.classList.remove('border-teal-500/40', 'bg-teal-500/10');
+      btn.classList.add('border-slate-800', 'bg-slate-900');
+    }
+  }
+
+  // Failure Injection: arm the next flush to hit a non-retryable WriteContract violation
+  function armDlqFailure() {
+    dlqArmed = true;
+    const btn = document.getElementById('btn-arm-dlq');
+    btn.classList.add('border-amber-500/60', 'bg-amber-500/10');
+  }
+
+  // Recovery Action: ProcessDLQ(DLQUpsert) — heal quarantined records and force-write them
+  async function processDlq() {
+    const dlqKeysCount = Object.keys(dlqStore).length;
+    if (dlqKeysCount === 0) return;
+
+    setInsight('dlq-process');
+    document.getElementById('box-dlq').setAttribute('stroke', '#fbbf24');
+    animatePathFlow('flow-dlq-drain', '#fbbf24', 'animate-pipe-flow');
+    await sleep(800);
+
+    for (let key in dlqStore) {
+      mongoAcknowledgedStore[key] = true;
+      statsMongoDocs++;
+    }
+    dlqStore = {};
+
+    clearPathFlow('flow-dlq-drain');
+    document.getElementById('box-dlq').setAttribute('stroke', '#78350f');
+    document.getElementById('box-mongo').setAttribute('stroke', '#059669');
+    updateVisualLedgers();
+  }
+
+  // Failure Injection: toggle Redis cluster availability — exercises DegradedModeDirect
+  function toggleRedisOutage() {
+    redisAvailable = !redisAvailable;
+    const lamp = document.getElementById('lamp-redis-health');
+    const label = document.getElementById('txt-outage-label');
+    const track = document.getElementById('track-degraded');
+
+    if (!redisAvailable) {
+      lamp.setAttribute('fill', '#ef4444');
+      document.getElementById('box-redis').setAttribute('stroke', '#7f1d1d');
+      label.textContent = 'Restore Redis Cluster';
+      track.setAttribute('opacity', '1');
+      setInsight('degraded');
+    } else {
+      lamp.setAttribute('fill', '#10b981');
+      document.getElementById('box-redis').setAttribute('stroke', '#f43f5e');
+      label.textContent = 'Simulate Redis Cluster Outage';
+      track.setAttribute('opacity', '0.5');
+      setInsight('idle');
+    }
+  }
+
+  // Degraded-mode write path: sluice.Write() bypasses the journal and hits the sink directly
+  async function stepDegradedWrite() {
+    setInsight('degraded');
+    statsWrites++;
+    animatePathFlow('flow-degraded', '#fb7185', 'animate-pipe-flow');
+    await sleep(700);
+
+    const key = `${targetKeySelection}_${Date.now()}`;
+    mongoAcknowledgedStore[key] = true;
+    statsMongoDocs++;
+    statsDegradedWrites++;
+
+    clearPathFlow('flow-degraded');
+    document.getElementById('box-mongo').setAttribute('stroke', '#059669');
+    updateVisualLedgers();
+  }
+
+  // Dynamic State UI Painting Routines
+  function updateVisualLedgers() {
+    // Update counts text variables
+    const bufferCount = channelBufferStack.length;
+    document.getElementById('txt-buffer-count').textContent = bufferCount;
+
+    // Adjust fluid graphic heights inside channel component visual frame box
+    const liquidHeight = (bufferCount / 10) * 144;
+    const liquidY = 147 - liquidHeight;
+    const liquidElement = document.getElementById('buffer-liquid');
+    liquidElement.setAttribute('y', liquidY);
+    liquidElement.setAttribute('height', liquidHeight);
+
+    // Manage backpressure status lights indicators strips
+    if (bufferCount >= 8) {
+      document.getElementById('lamp-backpressure').setAttribute('fill', '#f59e0b');
+      document.getElementById('txt-backpressure').textContent = "HIGH";
+      document.getElementById('txt-backpressure').setAttribute('fill', '#fef3c7');
+    } else if (bufferCount === 0) {
+      document.getElementById('lamp-backpressure').setAttribute('fill', '#334155');
+      document.getElementById('txt-backpressure').textContent = "EMPTY";
+      document.getElementById('txt-backpressure').setAttribute('fill', '#475569');
+    } else {
+      document.getElementById('lamp-backpressure').setAttribute('fill', '#10b981');
+      document.getElementById('txt-backpressure').textContent = "OK";
+      document.getElementById('txt-backpressure').setAttribute('fill', '#a7f3d0');
+    }
+
+    // Sync Redis Internal Matrix labels blocks
+    const hashKeysCount = Object.keys(redisStorePayloads).length;
+    document.getElementById('txt-redis-hash').textContent = hashKeysCount;
+    document.getElementById('txt-redis-zset').textContent = Object.keys(redisStoreZSet).length;
+    document.getElementById('txt-coalesce-saved').textContent = `${deduplicatedCount} Collapsed`;
+    document.getElementById('txt-hot-count').textContent = `${Object.keys(hotMarkers).length} hot · TTL 4h`;
+
+    // Sync Mongo Store Collection markers
+    document.getElementById('txt-mongo-docs').textContent = `${Object.keys(mongoAcknowledgedStore).length} Records`;
+
+    // Sync Dead-Letter Queue markers
+    const dlqCount = Object.keys(dlqStore).length;
+    document.getElementById('txt-dlq-count').textContent = dlqCount;
+    document.getElementById('txt-dlq-label').textContent = dlqCount === 1 ? 'quarantined key' : 'quarantined keys';
+
+    // Update bottom historical ledgers matrix stats parameters
+    document.getElementById('lbl-writes').textContent = statsWrites;
+    document.getElementById('lbl-mongo').textContent = statsMongoDocs;
+    document.getElementById('lbl-savings').textContent = `${statsSavingsRTT} network round-trips avoided`;
+    document.getElementById('lbl-dlq').textContent = dlqCount;
+    document.getElementById('lbl-degraded').textContent = statsDegradedWrites;
+    document.getElementById('lbl-reads').textContent = statsReads;
+    document.getElementById('lbl-hit-rate').textContent = statsReads === 0
+      ? '—'
+      : `${Math.round((statsHotReads / statsReads) * 100)}%`;
+  }
+
+  // Mechanical Canvas path flow animation workers
+  function animatePathFlow(pathId, strokeColor, animationClass) {
+    const el = document.getElementById(pathId);
+    el.setAttribute('stroke', strokeColor);
+    el.setAttribute('class', animationClass);
+  }
+
+  function clearPathFlow(pathId) {
+    const el = document.getElementById(pathId);
+    el.setAttribute('stroke', 'transparent');
+    el.removeAttribute('class');
+  }
+
+  // Automatic orchestration simulation loops variables
+  function startSimulationLoop() {
+    document.getElementById('btn-play').classList.add('hidden');
+    document.getElementById('btn-pause').classList.remove('hidden');
+
+    let stageIndex = 0;
+    autoIntervalTimer = setInterval(async () => {
+      if (stageIndex % 3 === 0) {
+        // Inject events sequence burst loops
+        targetKeySelection = Math.random() > 0.4 ? 'user_unique_A' : 'user_hot_spot';
+        stepIngest();
+      } else if (stageIndex === 5) {
+        await triggerMemoryCopyPipeline();
+      } else if (stageIndex === 9) {
+        await triggerEngineBulkFlush();
+        stageIndex = -1;
+      }
+      stageIndex++;
+    }, 1000);
+  }
+
+  function stopSimulationLoop() {
+    document.getElementById('btn-play').classList.remove('hidden');
+    document.getElementById('btn-pause').classList.add('hidden');
+    clearInterval(autoIntervalTimer);
+  }
+
+  function resetSimulation() {
+    stopSimulationLoop();
+    channelBufferStack = [];
+    redisStorePayloads = {};
+    redisStoreZSet = {};
+    mongoAcknowledgedStore = {};
+    dlqStore = {};
+    dlqArmed = false;
+    hotMarkers = {};
+    statsWrites = 0;
+    statsMongoDocs = 0;
+    statsSavingsRTT = 0;
+    statsDegradedWrites = 0;
+    statsReads = 0;
+    statsHotReads = 0;
+    deduplicatedCount = 0;
+
+    document.getElementById('btn-arm-dlq').classList.remove('border-amber-500/60', 'bg-amber-500/10');
+    if (!redisAvailable) toggleRedisOutage(); // restores cluster to healthy state on reset
+    if (!hotAwareFlush) toggleHotAwareFlush(); // restores default hot-aware flush on reset
+    document.getElementById('box-application').setAttribute('stroke', '#818cf8');
+
+    updateVisualLedgers();
+    setInsight('idle');
+  }
+
+  function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+  // Window initialization settings
+  window.onload = () => { setInsight('idle'); updateVisualLedgers(); };
+</script>
+</body>
+</html>

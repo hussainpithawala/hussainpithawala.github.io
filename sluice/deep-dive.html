@@ -1,0 +1,1114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>sluice — A Velocity Shield &amp; Hot-State Journal for Document Stores</title>
+
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <style>
+        /* ══ Readability-first palette ═══════════════════════════════════════
+           Body ink #212529 on #f8f9fa  (contrast ≈ 15:1)
+           Every diagram node = pale fill + dark border + dark text (≥ 7:1)     */
+        :root{
+            --cold-b:#3949ab; --cold-f:#e8eaf6; --cold-t:#1a237e;
+            --hot-b:#0f6e56;  --hot-f:#e1f5ee;  --hot-t:#085041;
+            --jr-b:#b06000;   --jr-f:#faeeda;   --jr-t:#633806;
+            --st-b:#993c1d;   --st-f:#faece7;   --st-t:#712b13;
+            --rd-b:#5e35b1;   --rd-f:#ede7f6;   --rd-t:#311b92;
+            --en-b:#495057;   --en-f:#f1f3f5;   --en-t:#343a40;
+        }
+        body{background:#f8f9fa;color:#212529;font-size:1.02rem}
+        h1,h2,h3,h4{color:#111827;font-weight:700}
+        a{color:#0b5ed7}
+        .kicker{font-size:.75rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase}
+        section{padding-top:3.5rem}
+        .lead-p{color:#343a40;line-height:1.75}
+
+        /* figure cards */
+        .fig{background:#fff;border:1px solid #ced4da;border-radius:.6rem;padding:1.4rem;margin:1.6rem 0;box-shadow:0 1px 2px rgba(0,0,0,.05)}
+        .fig-title{font-size:.78rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;margin-bottom:1.1rem;display:flex;align-items:center;gap:.55rem;color:#212529}
+        .fig-cap{color:#495057;font-size:.84rem;text-align:center;margin:.9rem 0 0}
+        .dot{width:.65rem;height:.65rem;border-radius:50%;flex:0 0 auto}
+
+        /* diagram nodes — pale fill, dark border, dark text */
+        .nd{border:2px solid;border-radius:.5rem;padding:.5rem .7rem;font-size:.79rem;line-height:1.4;text-align:center;font-family:var(--bs-font-monospace);background:#fff}
+        .nd small{display:block;font-size:.7rem;font-family:var(--bs-body-font)}
+        .nd-cold{border-color:var(--cold-b);background:var(--cold-f);color:var(--cold-t)}
+        .nd-hot {border-color:var(--hot-b); background:var(--hot-f); color:var(--hot-t)}
+        .nd-jr  {border-color:var(--jr-b);  background:var(--jr-f);  color:var(--jr-t)}
+        .nd-st  {border-color:var(--st-b);  background:var(--st-f);  color:var(--st-t)}
+        .nd-rd  {border-color:var(--rd-b);  background:var(--rd-f);  color:var(--rd-t)}
+        .nd-en  {border-color:var(--en-b);  background:var(--en-f);  color:var(--en-t)}
+
+        /* arrows */
+        .av{display:flex;justify-content:center;padding:.15rem 0}
+        .av i{display:block;width:2px;height:26px;background:currentColor;position:relative}
+        .av i::after{content:"";position:absolute;bottom:-6px;left:-4px;border:5px solid transparent;border-top-color:currentColor;border-bottom:0}
+        .ah{flex:1 1 2rem;min-width:1.4rem;display:flex;align-items:center;padding:0 .2rem}
+        .ah i{display:block;height:2px;width:100%;background:currentColor;position:relative}
+        .ah i::after{content:"";position:absolute;right:-6px;top:-4px;border:5px solid transparent;border-left-color:currentColor;border-right:0}
+        .a-cold{color:var(--cold-b)} .a-hot{color:var(--hot-b)} .a-jr{color:var(--jr-b)}
+        .a-st{color:var(--st-b)} .a-rd{color:var(--rd-b)} .a-en{color:var(--en-b)}
+
+        /* code — light panel, dark ink, high-contrast tokens */
+        pre.code{background:#f1f3f5;border:1px solid #ced4da;border-radius:.5rem;padding:1rem 1.15rem;
+            font-size:.83rem;line-height:1.6;color:#212529;margin:1.1rem 0;overflow-x:auto}
+        .tok-k{color:#6741d9;font-weight:600}   /* keyword  */
+        .tok-s{color:#c92a2a}                   /* string   */
+        .tok-c{color:#5c636a;font-style:italic} /* comment  */
+        .tok-f{color:#1864ab}                   /* func     */
+        .tok-t{color:#0b7285}                   /* type     */
+        .tok-n{color:#d9480f}                   /* number   */
+        code.inline{background:#e9ecef;color:#212529;padding:.1rem .35rem;border-radius:.25rem;font-size:.86em}
+
+        /* TOC sidebar */
+        #toc{position:sticky;top:4.2rem;max-height:calc(100vh - 5rem);overflow-y:auto;font-size:.88rem}
+        #toc .nav-link{color:#495057;padding:.28rem .7rem;border-left:3px solid transparent;border-radius:0}
+        #toc .nav-link:hover{color:#111827;background:#e9ecef}
+        #toc .nav-link.active{color:#0b5ed7;border-left-color:#0b5ed7;background:#e7f1ff;font-weight:600}
+        #toc .nav-link.sub{padding-left:1.5rem;font-size:.83rem}
+
+        /* hero */
+        .hero{background:linear-gradient(180deg,#ffffff 0%,#eef2f7 100%);border-bottom:1px solid #ced4da}
+        .hero h1{font-size:clamp(2.1rem,5vw,3.4rem);font-weight:800;letter-spacing:-.02em}
+        .pill{font-family:var(--bs-font-monospace);font-size:.76rem;border:1.5px solid;border-radius:50rem;padding:.3rem .8rem;background:#fff}
+
+        /* tables */
+        .table{--bs-table-bg:#fff;font-size:.9rem}
+        .table thead.table-dark th{font-size:.78rem;letter-spacing:.05em;text-transform:uppercase}
+        .table td:first-child{font-family:var(--bs-font-monospace);font-size:.82rem;color:#212529;white-space:nowrap}
+
+        /* key-value strip inside figures */
+        .kv{font-family:var(--bs-font-monospace);font-size:.8rem;line-height:1.9;color:#212529;background:#f8f9fa;border:1px solid #ced4da;border-radius:.5rem;padding:.9rem 1.1rem}
+    </style>
+    <!-- Favicons -->
+    <link href="../assets/img/favicon.png" rel="icon">
+    <link href="../assets/img/apple-touch-icon.png" rel="apple-touch-icon">
+
+</head>
+
+<body data-bs-spy="scroll" data-bs-target="#toc" data-bs-smooth-scroll="true" data-bs-root-margin="0px 0px -75%" tabindex="0">
+
+<!-- ══ NAVBAR ══ -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top shadow-sm">
+    <div class="container-fluid px-4">
+        <span class="navbar-brand fw-bold">🌊 sluice <span class="badge text-bg-warning ms-1">v1.0.7</span></span>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="nav">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item"><a class="nav-link" href="#intro">Introduction</a></li>
+                <li class="nav-item"><a class="nav-link" href="#problem">Problem</a></li>
+                <li class="nav-item"><a class="nav-link" href="#architecture">Architecture</a></li>
+                <li class="nav-item"><a class="nav-link" href="#regimes">Hot / Cold</a></li>
+                <li class="nav-item"><a class="nav-link" href="#api">APIs</a></li>
+                <li class="nav-item"><a class="nav-link" href="#config">Configuration</a></li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<!-- ══ HERO ══ -->
+<header class="hero py-5">
+    <div class="container py-4">
+        <p class="kicker text-secondary mb-3">Deep dive · Distributed systems · Go</p>
+        <h1>sluice<span class="text-warning">.</span><br>
+            <span style="color:#1a237e">A velocity shield</span> &amp;
+            <span style="color:#085041">hot-state journal</span> for document stores</h1>
+        <p class="lead-p mt-4 col-lg-9">
+            How a Go library turns <strong>100,000 chaotic writes per second</strong> into roughly
+            <strong>100 efficient <code class="inline">BulkWrite</code> calls</strong> — and then serves the active subset of
+            those keys back in <strong>sub-millisecond</strong> time, without touching the database again.
+        </p>
+        <div class="d-flex flex-wrap gap-2 mt-4">
+            <span class="pill" style="border-color:var(--cold-b);color:var(--cold-t)">10K–100K TPS ingest</span>
+            <span class="pill" style="border-color:var(--jr-b);color:var(--jr-t)">~1,000× I/O reduction</span>
+            <span class="pill" style="border-color:var(--hot-b);color:var(--hot-t)">sub-ms hot reads</span>
+            <span class="pill" style="border-color:var(--rd-b);color:var(--rd-t)">Hot / Cold regimes</span>
+            <span class="pill" style="border-color:var(--st-b);color:var(--st-t)">Dead-letter recovery</span>
+            <span class="pill" style="border-color:var(--en-b);color:var(--en-t)">Redis &amp; Valkey cluster-safe</span>
+        </div>
+    </div>
+</header>
+
+<div class="container">
+    <div class="row">
+
+        <!-- ══ TOC ══ -->
+        <aside class="col-lg-3 d-none d-lg-block">
+            <nav id="toc" class="nav flex-column py-4">
+                <p class="kicker text-secondary px-2 pb-2 mb-1">Contents</p>
+                <a class="nav-link" href="#intro">1 · Introduction</a>
+                <a class="nav-link" href="#problem">2 · The core problem</a>
+                <a class="nav-link" href="#architecture">3 · Architecture</a>
+                <a class="nav-link sub" href="#arch-journal">3.1 The state journal</a>
+                <a class="nav-link sub" href="#arch-coalesce">3.2 Coalescing</a>
+                <a class="nav-link sub" href="#arch-bands">3.3 Bands &amp; clusters</a>
+                <a class="nav-link sub" href="#arch-flush">3.4 Flush engine</a>
+                <a class="nav-link sub" href="#arch-commit">3.5 Two-phase commit</a>
+                <a class="nav-link sub" href="#arch-resilience">3.6 Write resilience</a>
+                <a class="nav-link" href="#regimes">4 · Hot &amp; Cold regimes</a>
+                <a class="nav-link sub" href="#regime-anatomy">4.1 Anatomy</a>
+                <a class="nav-link sub" href="#regime-promote">4.2 Promotion</a>
+                <a class="nav-link sub" href="#regime-read">4.3 Serving reads</a>
+                <a class="nav-link sub" href="#regime-query">4.4 Queryable journal</a>
+                <a class="nav-link sub" href="#regime-memory">4.5 Memory economics</a>
+                <a class="nav-link" href="#api">5 · Library APIs</a>
+                <a class="nav-link" href="#config">6 · Configuration</a>
+                <a class="nav-link" href="#closing">7 · Closing</a>
+            </nav>
+        </aside>
+
+        <!-- ══ ARTICLE ══ -->
+        <main class="col-lg-9 pb-5">
+
+            <!-- ─────────── 1 · INTRODUCTION ─────────── -->
+            <section id="intro">
+                <p class="kicker" style="color:#1864ab">Section 01</p>
+                <h2 class="mb-4">Introduction</h2>
+
+                <p class="lead-p"><strong>sluice</strong> is an open-source Go library that sits between high-velocity event
+                    streams — SQS queues, Kafka topics, webhook floods — and a document store such as AWS DocumentDB or MongoDB.
+                    It plays two roles at once, and the tension between those roles is what makes the design interesting.</p>
+
+                <p class="lead-p">On the <strong style="color:var(--cold-t)">write side</strong> it is a <em>velocity shield</em>:
+                    every incoming event is absorbed into a Redis-backed state journal in sub-millisecond time and acknowledged
+                    immediately, while background flushers quietly coalesce thousands of events into a handful of bulk upserts.
+                    The document store never sees the storm; it sees a calm, ordered trickle.</p>
+
+                <p class="lead-p">On the <strong style="color:var(--hot-t)">read side</strong> it is a <em>hot-state journal</em>:
+                    the same Redis structure that absorbed the writes becomes the authoritative, sub-millisecond read surface for the
+                    small subset of keys that are actually active right now — a logged-in user, an open session, an HTTP handler reading
+                    back what it just wrote. Cold keys fall through to the document store transparently.</p>
+
+                <div class="alert alert-warning border-2" style="border-color:var(--jr-b)!important">
+                    <strong>The one-sentence thesis.</strong> Treat Redis not as a cache in front of your database, but as a
+                    <strong>durable, deduplicating write journal</strong> that also happens to be the fastest possible read path for
+                    whatever is currently hot.
+                </div>
+
+                <p class="lead-p">The library was born in ad-tech, where millions of customers receive nudges, bids and inventory
+                    updates at rates no single document-store primary can absorb. But the shape of the problem — wide, incoherent,
+                    spiky write traffic against a store optimised for coherent bulk work — appears everywhere: loyalty platforms,
+                    payment ledgers, IoT telemetry, session-state services. sluice generalises the pattern behind a small,
+                    contract-driven API.</p>
+
+                <h3 class="h5 mt-5 mb-3">The scale envelope it is built for</h3>
+                <div class="table-responsive">
+                    <table class="table table-bordered align-middle">
+                        <thead class="table-dark"><tr><th>Metric</th><th>Value</th></tr></thead>
+                        <tbody>
+                        <tr><td>Sustained ingest</td><td>10K events/sec</td></tr>
+                        <tr><td>Peak spike</td><td>100K events/sec</td></tr>
+                        <tr><td>Unique correlation keys at peak</td><td>~80–90K/sec (wide-breadth traffic)</td></tr>
+                        <tr><td>DocumentDB <code class="inline">BulkWrite</code> calls/sec</td><td>~100–130</td></tr>
+                        <tr><td>I/O reduction vs individual writes</td><td><strong style="color:var(--hot-t)">~1,000×</strong></td></tr>
+                        <tr><td>Max document-store lag</td><td>250 ms (configurable <code class="inline">FlushWindow</code>)</td></tr>
+                        <tr><td>Hot-path <code class="inline">Read()</code></td><td>sub-millisecond — one pipelined <code class="inline">HGET + PTTL</code></td></tr>
+                        <tr><td>Crash recovery</td><td>at-least-once, via the Redis journal</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <p class="lead-p">The rest of this article walks the design in the order you would need it to rebuild it yourself:
+                    the problem (§2), the architecture that solves it (§3), the hot/cold regime that makes the journal a read path (§4),
+                    the public API (§5), and the configuration surface with tuning guidance (§6).</p>
+            </section>
+
+            <!-- ─────────── 2 · PROBLEM ─────────── -->
+            <section id="problem">
+                <p class="kicker" style="color:#1864ab">Section 02</p>
+                <h2 class="mb-4">The core problem it solves</h2>
+
+                <p class="lead-p">Modern event-driven platforms do not produce database-friendly traffic. They produce
+                    <strong>wide-breadth, incoherent, spiky</strong> traffic: one event, one customer, one field changed, arriving
+                    unbatched and uncoordinated from dozens of consumer workers. A nudge-inventory stream at 100K TPS is not 100K
+                    updates to a few documents — it is 100K updates spread across 80–90K <em>different</em> documents, with a long tail
+                    of keys that receive three or four events within the same second.</p>
+
+                <p class="lead-p mb-4">Forwarding that traffic naively to a document store produces four compounding failures.</p>
+
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6"><div class="card h-100 border-2" style="border-color:var(--st-b)">
+                        <div class="card-body" style="background:var(--st-f)">
+                            <h3 class="h6" style="color:var(--st-t)">① Single-primary bottleneck</h3>
+                            <p class="mb-0 small" style="color:var(--st-t)">DocumentDB and MongoDB route all writes through one primary.
+                                Every individual event is a separate network round-trip against a node that cannot scale horizontally for
+                                write throughput.</p>
+                        </div></div></div>
+                    <div class="col-md-6"><div class="card h-100 border-2" style="border-color:var(--st-b)">
+                        <div class="card-body" style="background:var(--st-f)">
+                            <h3 class="h6" style="color:var(--st-t)">② Index multiplication</h3>
+                            <p class="mb-0 small" style="color:var(--st-t)">Each secondary index multiplies the I/O cost of every single
+                                write. Four indexes on a hot collection means four B-tree mutations per event, per write.</p>
+                        </div></div></div>
+                    <div class="col-md-6"><div class="card h-100 border-2" style="border-color:var(--st-b)">
+                        <div class="card-body" style="background:var(--st-f)">
+                            <h3 class="h6" style="color:var(--st-t)">③ Connection-pool saturation</h3>
+                            <p class="mb-0 small" style="color:var(--st-t)">DocumentDB hard-caps connections per instance class. A spike
+                                that wakes 200 consumer workers exhausts the pool, and latency collapses for <em>everyone</em>, including
+                                unrelated readers.</p>
+                        </div></div></div>
+                    <div class="col-md-6"><div class="card h-100 border-2" style="border-color:var(--st-b)">
+                        <div class="card-body" style="background:var(--st-f)">
+                            <h3 class="h6" style="color:var(--st-t)">④ Round-trip explosion</h3>
+                            <p class="mb-0 small" style="color:var(--st-t)">100,000 events touching 80,000 unique customers become 100,000
+                                individual round-trips — when the same work is ~100 <code class="inline">BulkWrite</code> calls of ~1,000
+                                upserts each.</p>
+                        </div></div></div>
+                </div>
+
+                <!-- FIG 1 -->
+                <div class="fig">
+                    <p class="fig-title"><span class="dot" style="background:var(--st-b)"></span>Figure 1 · The naive path — every event is a round-trip</p>
+                    <svg viewBox="0 0 780 240" class="w-100" role="img" aria-label="Naive write path">
+                        <defs><marker id="mR" markerWidth="9" markerHeight="9" refX="7" refY="3.5" orient="auto">
+                            <path d="M0,0 L8,3.5 L0,7 z" fill="#c92a2a"/></marker></defs>
+                        <g font-family="monospace" font-size="11">
+                            <g fill="#e8eaf6" stroke="#3949ab" stroke-width="1.6">
+                                <rect x="14" y="16" width="150" height="26" rx="6"/><rect x="14" y="52" width="150" height="26" rx="6"/>
+                                <rect x="14" y="88" width="150" height="26" rx="6"/><rect x="14" y="124" width="150" height="26" rx="6"/>
+                                <rect x="14" y="160" width="150" height="26" rx="6"/><rect x="14" y="196" width="150" height="26" rx="6"/>
+                            </g>
+                            <g fill="#1a237e" text-anchor="middle">
+                                <text x="89" y="33">event user_001</text><text x="89" y="69">event user_002</text>
+                                <text x="89" y="105">event user_001</text><text x="89" y="141">event user_003</text>
+                                <text x="89" y="177">event user_001</text><text x="89" y="213">event user_002</text>
+                            </g>
+                            <g stroke="#c92a2a" stroke-width="1.5">
+                                <line x1="170" y1="29"  x2="586" y2="106" marker-end="url(#mR)"/>
+                                <line x1="170" y1="65"  x2="586" y2="112" marker-end="url(#mR)"/>
+                                <line x1="170" y1="101" x2="586" y2="118" marker-end="url(#mR)"/>
+                                <line x1="170" y1="137" x2="586" y2="124" marker-end="url(#mR)"/>
+                                <line x1="170" y1="173" x2="586" y2="130" marker-end="url(#mR)"/>
+                                <line x1="170" y1="209" x2="586" y2="136" marker-end="url(#mR)"/>
+                            </g>
+                            <rect x="592" y="82" width="176" height="78" rx="10" fill="#faece7" stroke="#993c1d" stroke-width="2"/>
+                            <text x="680" y="112" fill="#712b13" text-anchor="middle" font-weight="bold">DocumentDB</text>
+                            <text x="680" y="130" fill="#712b13" text-anchor="middle">primary</text>
+                            <text x="680" y="148" fill="#c92a2a" text-anchor="middle" font-size="10">pool saturated ⚠</text>
+                            <text x="380" y="58" fill="#495057" text-anchor="middle">100,000 individual round-trips / sec</text>
+                            <text x="380" y="228" fill="#5c636a" text-anchor="middle" font-size="10">duplicate keys re-written 3× each — no coalescing anywhere</text>
+                        </g>
+                    </svg>
+                    <p class="fig-cap">Six events, six round-trips, three of them redundant. At 100K TPS this is 100K round-trips against one node.</p>
+                </div>
+
+                <h3 class="h5 mt-5 mb-3">Why the obvious fixes fail</h3>
+                <p class="lead-p"><strong>“Just batch inside the consumer.”</strong> Consumers are stateless and horizontally
+                    scaled. Two workers holding events for the same key cannot see each other, so cross-consumer coalescing is
+                    impossible without a shared store — which is exactly the thing we are trying to protect. Worse, in-memory batching
+                    loses everything in the buffer the moment a pod dies.</p>
+                <p class="lead-p"><strong>“Put a cache in front.”</strong> A cache has the wrong semantics. Caches are
+                    read-optimised; their TTL is a staleness budget; a miss means “go ask the database”; and eviction under pressure
+                    silently destroys data. None of that is what a write-absorbing layer needs.</p>
+
+                <div class="table-responsive">
+                    <table class="table table-bordered align-middle">
+                        <thead class="table-dark"><tr><th></th><th>Traditional cache</th><th>sluice Redis journal</th></tr></thead>
+                        <tbody>
+                        <tr><td>Optimised for</td><td>Reads — avoids re-computation</td><td>Writes — absorbs velocity, then serves reads off the absorbed state</td></tr>
+                        <tr><td>TTL means</td><td>Staleness budget for reads</td><td>Crash-recovery safety net; extended to a session window for hot keys</td></tr>
+                        <tr><td>On miss</td><td>Go to the database</td><td>Key already flushed — the document store is authoritative (correct)</td></tr>
+                        <tr><td>Under pressure</td><td>Eviction loses data</td><td>Deduplication is intentional; nothing is lost</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="alert alert-success">
+                    <strong>The insight.</strong> Decouple the <strong>ingest rate</strong> from the <strong>persistence rate</strong>
+                    using a store that is fast enough to acknowledge every event individually (Redis) and structured enough to replay
+                    its contents in bulk later (a journal, not a cache).
+                </div>
+
+                <!-- FIG 2 -->
+                <div class="fig">
+                    <p class="fig-title"><span class="dot" style="background:var(--jr-b)"></span>Figure 2 · The sluice path — absorb, coalesce, drain</p>
+                    <div class="d-flex flex-column flex-md-row align-items-stretch gap-2">
+                        <div class="nd nd-cold flex-fill">SQS / Kafka<br><small>100K events/sec</small></div>
+                        <div class="ah a-jr d-none d-md-flex"><i></i></div><div class="av a-jr d-md-none"><i></i></div>
+                        <div class="nd nd-jr flex-fill">Redis state journal<br><small>HSET + EXPIRE + ZADD · 1 atomic RT · sub-ms ACK</small></div>
+                        <div class="ah a-en d-none d-md-flex"><i></i></div><div class="av a-en d-md-none"><i></i></div>
+                        <div class="nd nd-en flex-fill">flush engine<br><small>16 bands · 4 triggers</small></div>
+                        <div class="ah a-hot d-none d-md-flex"><i></i></div><div class="av a-hot d-md-none"><i></i></div>
+                        <div class="nd nd-st flex-fill">DocumentDB<br><small>~100–130 BulkWrite/sec</small></div>
+                    </div>
+                    <p class="fig-cap">100,000 writes/sec in, ~100–130 BulkWrite calls/sec out — a ~1,000× reduction in document-store I/O.
+                        Duplicate keys collapse to one dirty entry; the store only ever sees final state.</p>
+                </div>
+            </section>
+
+            <!-- ─────────── 3 · ARCHITECTURE ─────────── -->
+            <section id="architecture">
+                <p class="kicker" style="color:#1864ab">Section 03</p>
+                <h2 class="mb-4">Architecture</h2>
+                <p class="lead-p">The architecture has three load-bearing ideas: an <strong>atomic journal write</strong>,
+                    <strong>band partitioning</strong> that makes the whole thing cluster-safe and parallel, and a
+                    <strong>multi-trigger flush engine</strong> bound together by a two-phase commit. Everything else — dedup,
+                    idempotency, dead-letters, the hot regime — hangs off those three.</p>
+
+                <h3 id="arch-journal" class="h5 mt-5 mb-3">3.1 · The atomic journal write</h3>
+                <p class="lead-p">Every <code class="inline">Write()</code> executes a single pre-loaded Lua script that performs
+                    three Redis operations in one network round-trip: store the payload, arm its crash-recovery TTL, and mark the key
+                    dirty. Because it is one script, there is no window in which the payload exists but the key is unmarked, or
+                    vice-versa.</p>
+
+                <!-- FIG 3 -->
+                <div class="fig">
+                    <p class="fig-title"><span class="dot" style="background:var(--jr-b)"></span>Figure 3 · One script, three operations, one round-trip</p>
+                    <div class="d-flex flex-column flex-lg-row align-items-stretch gap-2">
+                        <div class="nd nd-cold flex-fill">consumer worker<br><small>Write(user, payload)</small></div>
+                        <div class="ah a-jr d-none d-lg-flex"><i></i></div><div class="av a-jr d-lg-none"><i></i></div>
+                        <div class="flex-fill-1 col-lg-6 border border-2 rounded-3 p-3" style="border-color:var(--jr-b)!important;background:var(--jr-f)">
+                            <p class="kicker mb-2" style="color:var(--jr-t)">EVALSHA atomicWrite · single round-trip</p>
+                            <div class="nd nd-jr mb-2">① HSET sl:ns:payload:{band}:user → p=payload, ts=now, h=hash</div>
+                            <div class="nd nd-jr mb-2">② EXPIRE payload key → KeyTTL (crash-recovery net)</div>
+                            <div class="nd nd-jr">③ ZADD sl:ns:dirty:{band} → score=now, member=user</div>
+                        </div>
+                        <div class="ah a-jr d-none d-lg-flex"><i></i></div><div class="av a-jr d-lg-none"><i></i></div>
+                        <div class="nd nd-cold flex-fill">ACK nil<br><small>&lt; 1 ms</small></div>
+                    </div>
+                    <p class="fig-cap">The ZADD score is the event timestamp in milliseconds — the flush engine therefore always drains
+                        oldest-first, giving a natural staleness bound equal to <code class="inline">FlushWindow</code>.</p>
+                </div>
+
+                <p class="lead-p">The payload hash carries three fields: <code class="inline">p</code> (opaque bytes — sluice never
+                    interprets them), <code class="inline">ts</code> (the score), and optionally <code class="inline">h</code> (an
+                    xxHash64 content fingerprint when deduplication is enabled). The <code class="inline">KeyTTL</code> on the hash is
+                    the safety net: if the process dies before a flush, the key self-cleans instead of pinning memory forever, and the
+                    pre-eviction trigger (§3.4) makes sure legitimate payloads are flushed long before that TTL bites.</p>
+
+                <h3 id="arch-coalesce" class="h5 mt-5 mb-3">3.2 · Coalescing: why wide traffic collapses</h3>
+                <p class="lead-p"><code class="inline">ZADD</code> on an existing member only updates its score; it does not create
+                    a second entry. And <code class="inline">HSET</code> overwrites the payload in place. Together these two properties
+                    mean that N events for the same correlation key within one flush window collapse into
+                    <strong>one dirty-set entry holding the latest payload</strong>. The document store only ever sees final state per
+                    window — intermediate churn never reaches it.</p>
+
+                <!-- FIG 4 -->
+                <div class="fig">
+                    <p class="fig-title"><span class="dot" style="background:var(--jr-b)"></span>Figure 4 · Six events → three dirty keys → one BulkWrite</p>
+                    <div class="row g-4 text-center">
+                        <div class="col-md-4">
+                            <p class="kicker text-secondary mb-2">events arriving · 100K/s</p>
+                            <div class="d-flex flex-column gap-2">
+                                <div class="nd nd-cold">user_001 · ev 1</div><div class="nd nd-cold">user_002 · ev 1</div>
+                                <div class="nd nd-cold">user_001 · ev 2</div><div class="nd nd-cold">user_003 · ev 1</div>
+                                <div class="nd nd-cold">user_001 · ev 3</div><div class="nd nd-cold">user_002 · ev 2</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <p class="kicker text-secondary mb-2">dirty set after 250 ms</p>
+                            <div class="av a-jr"><i></i></div>
+                            <div class="d-flex flex-column gap-2">
+                                <div class="nd nd-jr">user_001 · score = latest ts</div>
+                                <div class="nd nd-jr">user_002 · score = latest ts</div>
+                                <div class="nd nd-jr">user_003 · score = ts</div>
+                            </div>
+                            <p class="small text-secondary mt-2 mb-0">3 entries, not 6</p>
+                        </div>
+                        <div class="col-md-4">
+                            <p class="kicker text-secondary mb-2">document store</p>
+                            <div class="av a-st"><i></i></div>
+                            <div class="nd nd-st">BulkWrite · 1 call<br><small>upsert 001 · 002 · 003 · ordered=false</small></div>
+                            <p class="small text-secondary mt-2 mb-0">partial success reported per key</p>
+                        </div>
+                    </div>
+                    <p class="fig-cap">Coalescing is free: it falls out of ZSET/HSET semantics. No locks, no coordination, no consumer-side state.</p>
+                </div>
+
+                <h3 id="arch-bands" class="h5 mt-5 mb-3">3.3 · Bands, hash tags, and cluster safety</h3>
+                <p class="lead-p">The dirty queue is not one sorted set — it is <strong>sixteen</strong> (configurable) of them,
+                    called <em>bands</em>. A correlation key's band is <code class="inline">FNV-32a(key) % bandCount</code>, and each
+                    band is drained by its own goroutine. This gives parallelism without coordination: bands never share state.</p>
+                <p class="lead-p">Bands also solve the Redis Cluster problem. Every key sluice writes embeds the band as a
+                    <code class="inline">{band}</code> hash tag, so the payload hash, the dirty set, the hot marker, the index keys and
+                    the idempotency guard for a given key all land on the <strong>same cluster slot</strong>. That is what makes the
+                    atomic Lua script, the HMGET pipelines and the <code class="inline">SINTER</code> queries legal under cluster mode —
+                    and on Valkey clusters, which enforce the same rule.</p>
+
+                <!-- FIG 5 -->
+                <div class="fig">
+                    <p class="fig-title"><span class="dot" style="background:var(--cold-b)"></span>Figure 5 · The hash-tag contract</p>
+                    <div class="row g-2 mb-3 text-center">
+                        <div class="col-6 col-md-2"><div class="nd nd-jr">band 0<small>{0} slot</small></div></div>
+                        <div class="col-6 col-md-2"><div class="nd nd-jr">band 1<small>{1} slot</small></div></div>
+                        <div class="col-6 col-md-2"><div class="nd nd-jr">band 2<small>{2} slot</small></div></div>
+                        <div class="col-6 col-md-2"><div class="nd nd-jr">band 3<small>{3} slot</small></div></div>
+                        <div class="col-6 col-md-2"><div class="nd nd-en">…</div></div>
+                        <div class="col-6 col-md-2"><div class="nd nd-en">1 goroutine<small>per band</small></div></div>
+                    </div>
+                    <div class="kv">
+                        <span style="color:var(--jr-t)">sl:ns:payload:{7}:user_42</span>   ← payload hash<br>
+                        <span style="color:var(--jr-t)">sl:ns:dirty:{7}</span>            ← dirty ZSET<br>
+                        <span style="color:var(--hot-t)">sl:ns:hot:{7}:user_42</span>      ← hot marker<br>
+                        <span style="color:var(--rd-t)">sl:ns:idx:{7}:channel:push</span> ← equality index<br>
+                        <span style="color:var(--rd-t)">sl:ns:ridx:{7}:priority</span>    ← range index<br>
+                        <span style="color:var(--cold-t)">sl:ns:idem:{7}:msg_88</span>    ← idempotency guard<br>
+                        <span style="color:var(--st-t)">sl:ns:dlq:{7}</span>              ← dead-letter ZSET<br>
+                        <span class="text-secondary">all seven share {7} → one slot → Lua &amp; SINTER are cluster-legal</span>
+                    </div>
+                    <p class="fig-cap">A namespace containing “{” or “}” is rejected at <code class="inline">Build()</code> — it would hijack cluster hash-tag parsing.</p>
+                </div>
+
+                <h3 id="arch-flush" class="h5 mt-5 mb-3">3.4 · The flush engine: four triggers</h3>
+                <p class="lead-p">One goroutine per band sleeps until any of four independent triggers fires. The set of triggers is
+                    the engine's entire policy: each one defends against a different failure mode, and together they bound latency,
+                    memory, and data loss simultaneously.</p>
+
+                <!-- FIG 6 -->
+                <div class="fig">
+                    <p class="fig-title"><span class="dot" style="background:var(--en-b)"></span>Figure 6 · Trigger → drain → commit cycle</p>
+                    <div class="row g-2 mb-3 text-center">
+                        <div class="col-6 col-lg-3"><div class="nd nd-en py-3">⏰ <strong>Time</strong><small>FlushWindow elapsed · caps store staleness</small></div></div>
+                        <div class="col-6 col-lg-3"><div class="nd nd-en py-3">📊 <strong>Volume</strong><small>depth ≥ MaxBatchSize · caps Redis memory</small></div></div>
+                        <div class="col-6 col-lg-3"><div class="nd nd-en py-3">🛡️ <strong>Pre-eviction</strong><small>oldest key nears KeyTTL · prevents silent loss</small></div></div>
+                        <div class="col-6 col-lg-3"><div class="nd nd-hot py-3">🔥 <strong>Hot</strong><small>Write() on a hot key · keeps store current</small></div></div>
+                    </div>
+                    <div class="av a-en"><i></i></div>
+                    <div class="d-flex flex-column flex-lg-row align-items-stretch gap-2 mt-2">
+                        <div class="nd nd-en flex-fill">ZRANGEBYSCORE<small>oldest N dirty keys</small></div>
+                        <div class="ah a-en d-none d-lg-flex"><i></i></div><div class="av a-en d-lg-none"><i></i></div>
+                        <div class="nd nd-en flex-fill">pipeline HMGET<small>all payloads, 1 RTT</small></div>
+                        <div class="ah a-en d-none d-lg-flex"><i></i></div><div class="av a-en d-lg-none"><i></i></div>
+                        <div class="nd nd-en flex-fill">WriteContract<small>caller domain logic</small></div>
+                        <div class="ah a-st d-none d-lg-flex"><i></i></div><div class="av a-st d-lg-none"><i></i></div>
+                        <div class="nd nd-st flex-fill">BulkWrite<small>ordered = false</small></div>
+                        <div class="ah a-hot d-none d-lg-flex"><i></i></div><div class="av a-hot d-lg-none"><i></i></div>
+                        <div class="nd nd-hot flex-fill">ZREM + TTL refresh<small>only after confirm</small></div>
+                    </div>
+                    <p class="fig-cap">The pre-eviction poller runs every KeyTTL/2 (min 1s) and is disabled when KeyTTL ≤ 0.</p>
+                </div>
+
+                <h3 id="arch-commit" class="h5 mt-5 mb-3">3.5 · Two-phase commit and crash safety</h3>
+                <p class="lead-p">The dirty set is the source of truth for “what still needs persisting”. Keys are removed from it
+                    <strong>only after</strong> the document store confirms the write. If the process crashes between the BulkWrite and
+                    the ZREM, the next cycle re-flushes those keys — and because every sink operation is an upsert with last-write-wins
+                    semantics, the replay is harmless. That single ordering rule is what upgrades the pipeline from at-most-once to
+                    <strong style="color:var(--hot-t)">at-least-once with idempotent effect</strong>.</p>
+
+                <!-- FIG 7 -->
+                <div class="fig">
+                    <p class="fig-title"><span class="dot" style="background:var(--hot-b)"></span>Figure 7 · Commit ordering, and the crash window</p>
+                    <svg viewBox="0 0 760 320" class="w-100" role="img" aria-label="Two-phase commit sequence">
+                        <defs>
+                            <marker id="mA" markerWidth="9" markerHeight="9" refX="7" refY="3.5" orient="auto"><path d="M0,0 L8,3.5 L0,7 z" fill="#b06000"/></marker>
+                            <marker id="mS" markerWidth="9" markerHeight="9" refX="7" refY="3.5" orient="auto"><path d="M0,0 L8,3.5 L0,7 z" fill="#c92a2a"/></marker>
+                            <marker id="mG" markerWidth="9" markerHeight="9" refX="7" refY="3.5" orient="auto"><path d="M0,0 L8,3.5 L0,7 z" fill="#2b8a3e"/></marker>
+                        </defs>
+                        <g font-family="monospace" font-size="11">
+                            <line x1="140" y1="40" x2="140" y2="310" stroke="#adb5bd" stroke-dasharray="4 5"/>
+                            <line x1="380" y1="40" x2="380" y2="310" stroke="#b06000" stroke-dasharray="4 5"/>
+                            <line x1="620" y1="40" x2="620" y2="310" stroke="#993c1d" stroke-dasharray="4 5"/>
+                            <rect x="86" y="10" width="108" height="26" rx="6" fill="#f1f3f5" stroke="#495057" stroke-width="1.6"/>
+                            <text x="140" y="27" fill="#343a40" text-anchor="middle">flush engine</text>
+                            <rect x="340" y="10" width="80" height="26" rx="6" fill="#faeeda" stroke="#b06000" stroke-width="1.6"/>
+                            <text x="380" y="27" fill="#633806" text-anchor="middle">Redis</text>
+                            <rect x="562" y="10" width="116" height="26" rx="6" fill="#faece7" stroke="#993c1d" stroke-width="1.6"/>
+                            <text x="620" y="27" fill="#712b13" text-anchor="middle">DocumentDB</text>
+
+                            <line x1="146" y1="70" x2="372" y2="70" stroke="#b06000" stroke-width="1.6" marker-end="url(#mA)"/>
+                            <text x="260" y="62" fill="#633806" text-anchor="middle">ZRANGEBYSCORE + HMGET</text>
+                            <line x1="146" y1="112" x2="612" y2="112" stroke="#c92a2a" stroke-width="1.6" marker-end="url(#mS)"/>
+                            <text x="380" y="104" fill="#712b13" text-anchor="middle">BulkWrite (upserts, ordered=false)</text>
+                            <line x1="614" y1="152" x2="148" y2="152" stroke="#2b8a3e" stroke-width="1.6" marker-end="url(#mG)"/>
+                            <text x="380" y="144" fill="#085041" text-anchor="middle">confirmed: upsertedCount = N</text>
+                            <line x1="146" y1="192" x2="372" y2="192" stroke="#b06000" stroke-width="1.6" marker-end="url(#mA)"/>
+                            <text x="260" y="184" fill="#633806" text-anchor="middle">ZREM dirty keys</text>
+
+                            <rect x="190" y="216" width="380" height="56" rx="8" fill="#faece7" stroke="#c92a2a" stroke-dasharray="5 4"/>
+                            <text x="380" y="238" fill="#c92a2a" text-anchor="middle">crash window: after confirm, before ZREM</text>
+                            <text x="380" y="258" fill="#495057" text-anchor="middle" font-size="10">next cycle re-flushes → upsert replay is safe</text>
+                        </g>
+                    </svg>
+                    <p class="fig-cap">Permanent failures (code 11000, contract violations) take a different exit: the dead-letter set (§3.6).</p>
+                </div>
+
+                <h3 id="arch-resilience" class="h5 mt-5 mb-3">3.6 · Write-path resilience: dedup, idempotency, dead-letters</h3>
+
+                <p class="lead-p"><strong style="color:var(--hot-t)">Content deduplication.</strong> High-velocity streams re-send
+                    unchanged payloads constantly — heartbeats, periodic full-state refreshes, at-least-once redeliveries. With
+                    <code class="inline">WithContentDedup(true)</code>, each payload is fingerprinted with xxHash64 and compared against
+                    the stored <code class="inline">h</code> field inside the same Lua script. On a match, sluice refreshes the payload
+                    TTL and returns — skipping the dirty-set insertion, index maintenance and volume signalling entirely. The document
+                    store never sees a write it already has.</p>
+
+                <!-- FIG 8 -->
+                <div class="fig">
+                    <p class="fig-title"><span class="dot" style="background:var(--hot-b)"></span>Figure 8 · Dedup decision inside the atomic script</p>
+                    <div class="d-flex flex-column flex-lg-row align-items-center gap-2">
+                        <div class="nd nd-cold">Write(user, payload)</div>
+                        <div class="ah a-en d-none d-lg-flex"><i></i></div><div class="av a-en d-lg-none"><i></i></div>
+                        <div class="nd nd-en">h = xxhash64(payload)</div>
+                        <div class="ah a-jr d-none d-lg-flex"><i></i></div><div class="av a-jr d-lg-none"><i></i></div>
+                        <div class="nd nd-jr py-3">h == stored h ?</div>
+                        <div class="flex-grow-1 w-100 d-flex flex-column gap-2">
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge text-bg-success">yes</span><div class="ah a-hot"><i></i></div>
+                                <div class="nd nd-hot flex-grow-1">EXPIRE only · return 0 · store untouched</div>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge text-bg-warning text-dark">no</span><div class="ah a-jr"><i></i></div>
+                                <div class="nd nd-jr flex-grow-1">HSET p,ts,h · EXPIRE · ZADD · return 1</div>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="fig-cap">Disabled by default: it costs one extra hash field per key.</p>
+                </div>
+
+                <p class="lead-p"><strong style="color:var(--cold-t)">Idempotent writes.</strong> Upstream queues redeliver.
+                    <code class="inline">WriteIdempotent(ctx, user, payload, msgID)</code> guards the entrance with a
+                    <code class="inline">SETNX EX</code> on <code class="inline">sl:ns:idem:{band}:key</code>; a replay returns
+                    <code class="inline">ErrDuplicateIdempotencyKey</code> so the consumer can ACK and move on without polluting the
+                    journal. The guard's TTL (<code class="inline">IdempotencyTTL</code>, default 4h) should match your upstream's
+                    redelivery window, not your retention needs.</p>
+
+                <p class="lead-p"><strong style="color:var(--st-t)">Dead-letter queue.</strong> When a flush meets a
+                    <strong>permanent</strong> failure — a unique-index violation (code 11000) or a contract violation — retrying is
+                    futile and would wedge the band. Those keys move to a per-band dead-letter ZSET, their payload TTL extended to seven
+                    days for inspection, annotated with the failure reason. Transient failures stay in the dirty set and retry
+                    automatically. Three recovery strategies drain the DLQ:</p>
+
+                <!-- FIG 9 -->
+                <div class="fig">
+                    <p class="fig-title"><span class="dot" style="background:var(--st-b)"></span>Figure 9 · DLQ recovery strategies</p>
+                    <div class="row g-3">
+                        <div class="col-md-4"><div class="card h-100 border-2" style="border-color:var(--en-b)">
+                            <div class="card-body" style="background:var(--en-f)">
+                                <h4 class="h6" style="color:var(--en-t)">DLQIgnore</h4>
+                                <p class="small mb-0" style="color:var(--en-t)">Log each record, remove it. For expected, safely-discardable failures.</p>
+                            </div></div></div>
+                        <div class="col-md-4"><div class="card h-100 border-2" style="border-color:var(--jr-b)">
+                            <div class="card-body" style="background:var(--jr-f)">
+                                <h4 class="h6" style="color:var(--jr-t)">DLQUpsert</h4>
+                                <p class="small mb-0" style="color:var(--jr-t)">Re-run the WriteContract with <code class="inline">Upsert:true</code>.
+                                    Pairs with the <em>payload-healing</em> pattern: flip an atomic flag, and the contract corrects bad fields at recovery time.</p>
+                            </div></div></div>
+                        <div class="col-md-4"><div class="card h-100 border-2" style="border-color:var(--cold-b)">
+                            <div class="card-body" style="background:var(--cold-f)">
+                                <h4 class="h6" style="color:var(--cold-t)">DLQReInsert</h4>
+                                <p class="small mb-0" style="color:var(--cold-t)">Mutate the correlation key (timestamp suffix) and re-enqueue.
+                                    Keeps original and corrected documents side-by-side.</p>
+                            </div></div></div>
+                    </div>
+                    <p class="fig-cap"><code class="inline">ProcessDLQ</code> is context-aware; <code class="inline">WithDLQAutoProcess(interval, strategy)</code> runs it on a background ticker.</p>
+                </div>
+
+                <p class="lead-p"><strong style="color:var(--jr-t)">Degraded mode.</strong> If Redis itself is unavailable, sluice
+                    refuses to drop data: with <code class="inline">DegradedModeDirect(true)</code> (the default) each
+                    <code class="inline">Write()</code> applies the contract and calls <code class="inline">sink.Write</code> directly —
+                    slow, but correct. With it disabled, writes return <code class="inline">ErrRedisUnavailable</code> so the caller can
+                    decide.</p>
+
+                <h3 class="h5 mt-5 mb-3">3.7 · The full system view</h3>
+                <!-- FIG 10 -->
+                <div class="fig">
+                    <p class="fig-title"><span class="dot" style="background:#343a40"></span>Figure 10 · Everything, in one picture</p>
+                    <div class="row g-3">
+                        <div class="col-md-6"><div class="nd nd-cold py-3">COLD WRITE · asynchronous ingest<small>SQS / Kafka → stateless consumer workers</small></div></div>
+                        <div class="col-md-6"><div class="nd nd-hot py-3">HOT WRITE · synchronous API<small>HTTP handler → Write() on a hot session key</small></div></div>
+                    </div>
+                    <div class="av a-en"><i></i></div>
+                    <div class="border border-2 rounded-3 p-3 mb-2" style="border-color:var(--jr-b)!important;background:var(--jr-f)">
+                        <p class="kicker mb-2" style="color:var(--jr-t)">Redis state journal · cluster-safe via {band}</p>
+                        <div class="row g-2 text-center">
+                            <div class="col-6 col-md"><div class="nd nd-jr">payload HASH<small>p · ts · h</small></div></div>
+                            <div class="col-6 col-md"><div class="nd nd-jr">dirty ZSET<small>16 bands</small></div></div>
+                            <div class="col-6 col-md"><div class="nd nd-hot">hot marker<small>TTL 4h</small></div></div>
+                            <div class="col-6 col-md"><div class="nd nd-rd">indexes<small>SET + ZSET</small></div></div>
+                            <div class="col-6 col-md"><div class="nd nd-st">DLQ ZSET<small>7-day TTL</small></div></div>
+                        </div>
+                    </div>
+                    <div class="av a-en"><i></i></div>
+                    <div class="border border-2 rounded-3 p-3 mb-2" style="border-color:var(--en-b)!important;background:var(--en-f)">
+                        <p class="kicker mb-2" style="color:var(--en-t)">Flush engine · 16 goroutines · 4 triggers</p>
+                        <div class="d-flex flex-column flex-md-row gap-2">
+                            <div class="nd nd-en flex-fill">drain band</div><div class="ah a-en d-none d-md-flex"><i></i></div>
+                            <div class="nd nd-en flex-fill">WriteContract</div><div class="ah a-st d-none d-md-flex"><i></i></div>
+                            <div class="nd nd-st flex-fill">BulkWrite</div><div class="ah a-hot d-none d-md-flex"><i></i></div>
+                            <div class="nd nd-hot flex-fill">commit + TTL refresh</div>
+                        </div>
+                    </div>
+                    <div class="row g-3 mt-1">
+                        <div class="col-md-6"><div class="av a-st"><i></i></div><div class="nd nd-st py-3">DOCUMENT STORE<small>sink.FlushSink · BulkWrite / Write</small></div></div>
+                        <div class="col-md-6"><div class="av a-rd"><i></i></div><div class="nd nd-rd py-3">UNIFIED READ PATH<small>hot → journal · cold → source.Source</small></div></div>
+                    </div>
+                    <p class="fig-cap">The write side and the read side share one journal — that shared surface is the subject of §4.</p>
+                </div>
+            </section>
+
+            <!-- ─────────── 4 · REGIMES ─────────── -->
+            <section id="regimes">
+                <p class="kicker" style="color:#085041">Section 04 · The centrepiece</p>
+                <h2 class="mb-4">The Hot &amp; Cold regime</h2>
+
+                <p class="lead-p">Here is the observation that turns sluice from a write buffer into a data platform:
+                    <strong>a wide-breadth stream is not uniformly wide.</strong> At any instant, a small subset of correlation keys is
+                    <em>alive</em> — a user is logged in, a session is open, an HTTP handler is about to read back the key it just wrote.
+                    The other ninety percent are background churn that only the document store cares about. Treating those two
+                    populations identically wastes the journal's best property: it is already holding the freshest possible copy of
+                    exactly the keys people are asking about.</p>
+                <p class="lead-p">sluice therefore runs two regimes over one journal. <strong style="color:var(--cold-t)">Cold</strong>
+                    keys are pure transit: absorbed, coalesced, flushed, evicted. <strong style="color:var(--hot-t)">Hot</strong> keys are
+                    promoted to resident state: warmed from the document store on login, served in sub-millisecond time for the length
+                    of the session, and kept fresh by the very traffic that touches them.</p>
+
+                <h3 id="regime-anatomy" class="h5 mt-5 mb-3">4.1 · Anatomy of the two regimes</h3>
+
+                <!-- FIG 11 -->
+                <div class="fig">
+                    <p class="fig-title"><span class="dot" style="background:#343a40"></span>Figure 11 · Cold vs hot, side by side</p>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="border border-2 rounded-3 p-3 h-100" style="border-color:var(--cold-b)!important;background:var(--cold-f)">
+                                <p class="kicker mb-3" style="color:var(--cold-t)">❄️ COLD correlation key</p>
+                                <div class="d-flex flex-column gap-2">
+                                    <div class="nd nd-cold text-start">Definition<small>no payload resident in the journal</small></div>
+                                    <div class="nd nd-cold text-start">Read() → falls back to Source via ReadContract<small>one FindOne · 5–50 ms</small></div>
+                                    <div class="nd nd-cold text-start">Write() → coalesces; flushed on time / volume / pre-eviction<small>latency ≈ FlushWindow (250 ms)</small></div>
+                                    <div class="nd nd-cold text-start">Residency → KeyTTL (30 s) until flushed<small>marker: none</small></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="border border-2 rounded-3 p-3 h-100" style="border-color:var(--hot-b)!important;background:var(--hot-f)">
+                                <p class="kicker mb-3" style="color:var(--hot-t)">🔥 HOT correlation key</p>
+                                <div class="d-flex flex-column gap-2">
+                                    <div class="nd nd-hot text-start">Definition<small>payload resident + active hot marker</small></div>
+                                    <div class="nd nd-hot text-start">Read() → pipelined HGET + PTTL from Redis<small>sub-millisecond, lazy TTL refresh</small></div>
+                                    <div class="nd nd-hot text-start">Write() → coalesces AND signals an immediate flush<small>latency &lt; 10 ms</small></div>
+                                    <div class="nd nd-hot text-start">Residency → ActivityWindow (4 h)<small>marker: sl:ns:hot:{band}:user</small></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="fig-cap">Same <code class="inline">Write()</code> API, same journal. The regime is a property of the key's state, not of the call.</p>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-bordered align-middle">
+                        <thead class="table-dark"><tr><th>Dimension</th><th>Cold</th><th>Hot</th></tr></thead>
+                        <tbody>
+                        <tr><td>Promotion</td><td>—</td><td><code class="inline">HotLoad()</code>, typically on user login</td></tr>
+                        <tr><td>Read latency</td><td>5–50 ms (document store)</td><td><strong style="color:var(--hot-t)">&lt; 1 ms (Redis)</strong></td></tr>
+                        <tr><td>Write→store latency</td><td>≤ FlushWindow</td><td><strong style="color:var(--hot-t)">&lt; 10 ms (hot trigger)</strong></td></tr>
+                        <tr><td>Journal TTL</td><td>KeyTTL (30 s)</td><td>ActivityWindow (4 h), refreshed by reads and flushes</td></tr>
+                        <tr><td>Demotion</td><td>—</td><td>silence: TTL expires, no explicit eviction</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3 id="regime-promote" class="h5 mt-5 mb-3">4.2 · Promotion: the HotLoad lifecycle</h3>
+                <p class="lead-p">Promotion is explicit and cheap. <code class="inline">HotLoad(ctx, user)</code> asks the
+                    <code class="inline">ReadContract</code> for a datastore-agnostic <code class="inline">ReadModel</code>, executes it
+                    through the configured <code class="inline">Source</code>, seeds the journal with the returned bytes, and sets the
+                    hot marker with an <code class="inline">ActivityWindow</code> TTL. From that moment the session's reads never touch
+                    the document store again.</p>
+
+                <!-- FIG 12 -->
+                <div class="fig">
+                    <p class="fig-title"><span class="dot" style="background:var(--hot-b)"></span>Figure 12 · One session, three phases</p>
+                    <svg viewBox="0 0 820 452" class="w-100" role="img" aria-label="HotLoad lifecycle sequence">
+                        <defs>
+                            <marker id="mH" markerWidth="9" markerHeight="9" refX="7" refY="3.5" orient="auto"><path d="M0,0 L8,3.5 L0,7 z" fill="#0f6e56"/></marker>
+                            <marker id="mP" markerWidth="9" markerHeight="9" refX="7" refY="3.5" orient="auto"><path d="M0,0 L8,3.5 L0,7 z" fill="#5e35b1"/></marker>
+                            <marker id="mJ" markerWidth="9" markerHeight="9" refX="7" refY="3.5" orient="auto"><path d="M0,0 L8,3.5 L0,7 z" fill="#b06000"/></marker>
+                        </defs>
+                        <g font-family="monospace" font-size="11">
+                            <line x1="110" y1="40" x2="110" y2="440" stroke="#3949ab" stroke-dasharray="4 5"/>
+                            <line x1="330" y1="40" x2="330" y2="440" stroke="#495057" stroke-dasharray="4 5"/>
+                            <line x1="550" y1="40" x2="550" y2="440" stroke="#b06000" stroke-dasharray="4 5"/>
+                            <line x1="750" y1="40" x2="750" y2="440" stroke="#993c1d" stroke-dasharray="4 5"/>
+                            <rect x="60" y="10" width="100" height="26" rx="6" fill="#e8eaf6" stroke="#3949ab" stroke-width="1.6"/>
+                            <text x="110" y="27" fill="#1a237e" text-anchor="middle">application</text>
+                            <rect x="294" y="10" width="72" height="26" rx="6" fill="#f1f3f5" stroke="#495057" stroke-width="1.6"/>
+                            <text x="330" y="27" fill="#343a40" text-anchor="middle">sluice</text>
+                            <rect x="494" y="10" width="112" height="26" rx="6" fill="#faeeda" stroke="#b06000" stroke-width="1.6"/>
+                            <text x="550" y="27" fill="#633806" text-anchor="middle">Redis journal</text>
+                            <rect x="694" y="10" width="112" height="26" rx="6" fill="#faece7" stroke="#993c1d" stroke-width="1.6"/>
+                            <text x="750" y="27" fill="#712b13" text-anchor="middle">DocumentDB</text>
+
+                            <rect x="20" y="50" width="780" height="22" rx="6" fill="#e1f5ee"/>
+                            <text x="410" y="65" fill="#085041" text-anchor="middle">phase 1 · login — promote to hot</text>
+                            <line x1="116" y1="90" x2="322" y2="90" stroke="#0f6e56" stroke-width="1.6" marker-end="url(#mH)"/>
+                            <text x="220" y="83" fill="#085041" text-anchor="middle">HotLoad(user)</text>
+                            <line x1="336" y1="116" x2="742" y2="116" stroke="#5e35b1" stroke-width="1.6" marker-end="url(#mP)"/>
+                            <text x="540" y="109" fill="#311b92" text-anchor="middle">ReadContract → Source.Read (FindOne)</text>
+                            <line x1="744" y1="142" x2="338" y2="142" stroke="#5e35b1" stroke-width="1.6" marker-end="url(#mP)"/>
+                            <text x="540" y="135" fill="#311b92" text-anchor="middle">document bytes</text>
+                            <line x1="336" y1="168" x2="542" y2="168" stroke="#b06000" stroke-width="1.6" marker-end="url(#mJ)"/>
+                            <text x="440" y="161" fill="#633806" text-anchor="middle">HSET payload + SET hot marker (4h)</text>
+
+                            <rect x="20" y="192" width="780" height="22" rx="6" fill="#e1f5ee"/>
+                            <text x="410" y="207" fill="#085041" text-anchor="middle">phase 2 · session — the store is never read</text>
+                            <line x1="116" y1="232" x2="322" y2="232" stroke="#0f6e56" stroke-width="1.6" marker-end="url(#mH)"/>
+                            <text x="220" y="225" fill="#085041" text-anchor="middle">Write(user, payload)</text>
+                            <line x1="336" y1="256" x2="542" y2="256" stroke="#b06000" stroke-width="1.6" marker-end="url(#mJ)"/>
+                            <text x="440" y="249" fill="#633806" text-anchor="middle">atomic HSET + ZADD · hot → flush now</text>
+                            <line x1="116" y1="282" x2="322" y2="282" stroke="#0f6e56" stroke-width="1.6" marker-end="url(#mH)"/>
+                            <text x="220" y="275" fill="#085041" text-anchor="middle">Read(user)</text>
+                            <line x1="336" y1="306" x2="542" y2="306" stroke="#b06000" stroke-width="1.6" marker-end="url(#mJ)"/>
+                            <text x="440" y="299" fill="#633806" text-anchor="middle">pipeline HGET + PTTL</text>
+                            <line x1="544" y1="330" x2="118" y2="330" stroke="#0f6e56" stroke-width="1.6" marker-end="url(#mH)"/>
+                            <text x="330" y="323" fill="#085041" text-anchor="middle">payload · sub-ms · lazy TTL refresh if needed</text>
+
+                            <rect x="20" y="352" width="780" height="22" rx="6" fill="#e8eaf6"/>
+                            <text x="410" y="367" fill="#1a237e" text-anchor="middle">phase 3 · cold key — transparent fallback</text>
+                            <line x1="116" y1="392" x2="322" y2="392" stroke="#3949ab" stroke-width="1.6" marker-end="url(#mH)"/>
+                            <text x="220" y="385" fill="#1a237e" text-anchor="middle">Read(coldKey)</text>
+                            <line x1="336" y1="418" x2="742" y2="418" stroke="#5e35b1" stroke-width="1.6" marker-end="url(#mP)"/>
+                            <text x="540" y="411" fill="#311b92" text-anchor="middle">journal miss → Source.Read → bytes or ErrRecordNotFound</text>
+                        </g>
+                    </svg>
+                    <p class="fig-cap">HotLoad and the cold fallback both require <code class="inline">WithSource()</code> + <code class="inline">WithReadContract()</code>; <code class="inline">Build()</code> fails fast if one is missing.</p>
+                </div>
+
+                <h3 id="regime-read" class="h5 mt-5 mb-3">4.3 · Serving reads: lazy refresh, no goroutine storms</h3>
+                <p class="lead-p">A hot read is one pipelined round-trip: <code class="inline">HGET</code> for the payload and
+                    <code class="inline">PTTL</code> for the remaining life, fetched together. The PTTL is not telemetry — it drives the
+                    refresh policy. If the remaining TTL has fallen below <strong>20% of ActivityWindow</strong>, sluice refreshes the
+                    hot marker and payload TTL <strong style="color:var(--hot-t)">synchronously, inline</strong>. Steady read traffic
+                    therefore keeps a key hot indefinitely; silence lets it age out and demote itself.</p>
+
+                <div class="alert alert-danger">
+                    <strong>Why synchronous and not fire-and-forget?</strong> An earlier design spawned a background goroutine per
+                    read to refresh the TTL. At 100K reads/sec that is 100K goroutines/sec, each holding a context and a pooled
+                    connection — a self-inflicted goroutine storm on the hot path. The lazy threshold check costs one comparison and
+                    fires a refresh only in the last fifth of the window.
+                </div>
+
+                <!-- FIG 13 -->
+                <div class="fig">
+                    <p class="fig-title"><span class="dot" style="background:var(--hot-b)"></span>Figure 13 · The TTL timeline and the 20% refresh zone</p>
+                    <div class="d-flex rounded-3 overflow-hidden border border-2" style="border-color:#495057;height:2.6rem;font-family:var(--bs-font-monospace);font-size:.78rem">
+                        <div class="d-flex align-items-center justify-content-center" style="width:80%;background:var(--hot-f);color:var(--hot-t)">safe zone · reads return as-is</div>
+                        <div class="d-flex align-items-center justify-content-center border-start border-2" style="width:20%;background:var(--jr-f);color:var(--jr-t);border-color:var(--jr-b)!important">refresh zone</div>
+                    </div>
+                    <div class="d-flex justify-content-between mt-2 small text-secondary" style="font-family:var(--bs-font-monospace)">
+                        <span>HotLoad · TTL = 4h</span><span>3h12m remaining</span><span style="color:var(--jr-t)">&lt; 48m → refresh now</span><span>0 · demote</span>
+                    </div>
+                    <div class="d-flex flex-column flex-md-row gap-2 mt-4">
+                        <div class="nd nd-rd flex-fill py-3">Read() hits journal<small>HGET + PTTL · 1 RTT</small></div>
+                        <div class="nd nd-jr flex-fill py-3">PTTL &lt; 20% of window?<small>synchronous decision</small></div>
+                        <div class="nd nd-hot flex-fill py-3">refresh marker + payload<small>key stays hot</small></div>
+                    </div>
+                    <p class="fig-cap">Hot-aware flush adds a second refresher: after each successful commit, committed keys' TTLs are extended to ActivityWindow.</p>
+                </div>
+
+                <p class="lead-p">The second refresher matters more than it looks. Without it, a flush would be self-defeating for
+                    hot keys: the payload's 30-second transit TTL would expire right after being written, evicting the very session the
+                    flush was meant to serve. <code class="inline">WithHotAwareFlush(true)</code> (the default) extends every committed
+                    key's TTL to <code class="inline">ActivityWindow</code> after a successful commit, so a flush can never evict a live
+                    session. Writes to hot keys additionally raise the <strong>hot trigger</strong>, pulling that band's flush forward
+                    from 250 ms to under 10 ms — which is what makes “write then immediately read your own write” behave correctly for
+                    sync APIs.</p>
+
+                <h3 id="regime-query" class="h5 mt-5 mb-3">4.4 · The journal as a queryable store</h3>
+                <p class="lead-p">Because hot keys and in-flight writes are already resident, the journal can answer questions about
+                    <em>live state</em> without touching the document store at all. An optional
+                    <code class="inline">IndexContract</code> projects fields out of each payload as it lands; sluice maintains them
+                    through a Go-side pipeline — no Lua, no <code class="inline">cjson</code>, so the path is safe on Valkey as well as
+                    Redis.</p>
+
+                <!-- FIG 14 -->
+                <div class="fig">
+                    <p class="fig-title"><span class="dot" style="background:var(--rd-b)"></span>Figure 14 · Index types and the Query() pipeline</p>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6"><div class="nd nd-rd text-start py-3">string value → equality SET<small>sl:ns:idx:{band}:channel:push · members = matching keys</small></div></div>
+                        <div class="col-md-6"><div class="nd nd-rd text-start py-3">float64 / int64 → range ZSET<small>sl:ns:ridx:{band}:priority · score = the value itself</small></div></div>
+                    </div>
+                    <div class="d-flex flex-column flex-lg-row align-items-stretch gap-2">
+                        <div class="nd nd-rd flex-fill py-3">Query{Equality, RangeMin, RangeMax}</div>
+                        <div class="ah a-rd d-none d-lg-flex"><i></i></div><div class="av a-rd d-lg-none"><i></i></div>
+                        <div class="nd nd-rd flex-fill py-3">per band: SINTER<small>same {band} → slot-legal</small></div>
+                        <div class="ah a-rd d-none d-lg-flex"><i></i></div><div class="av a-rd d-lg-none"><i></i></div>
+                        <div class="nd nd-rd flex-fill py-3">ZSCORE range filter<small>per candidate</small></div>
+                        <div class="ah a-jr d-none d-lg-flex"><i></i></div><div class="av a-jr d-lg-none"><i></i></div>
+                        <div class="nd nd-jr flex-fill py-3">pipeline HGET<small>hydrate payloads</small></div>
+                    </div>
+                    <p class="fig-cap">At least one equality filter is required. Query sees resident state only — a live-state lookup, not a replacement for store queries.</p>
+                </div>
+
+                <h3 id="regime-memory" class="h5 mt-5 mb-3">4.5 · Memory economics: two honest profiles</h3>
+                <p class="lead-p">Hot-aware flush has a memory consequence you should choose deliberately: it extends the TTL of
+                    <strong>every</strong> successfully committed key, not only the marked-hot ones. That gives you two distinct
+                    residency profiles, and the right one depends on whether your service has a read path.</p>
+
+                <div class="table-responsive">
+                    <table class="table table-bordered align-middle">
+                        <thead class="table-dark"><tr><th>Profile</th><th>Setting</th><th>Redis residency</th><th>Use when</th></tr></thead>
+                        <tbody>
+                        <tr><td>Transit buffer</td><td><code class="inline">WithHotAwareFlush(false)</code></td><td>~25K keys at peak; governed by in-flight writes; 30 s life</td><td>pure write-through ingest, no read path</td></tr>
+                        <tr><td>Session store</td><td><code class="inline">WithHotAwareFlush(true)</code> (default)</td><td>governed by concurrent active sessions; 4 h life</td><td>any service serving sync reads for active users</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <p class="lead-p">Demotion needs no machinery: a hot key that goes quiet simply stops being refreshed, its marker
+                    and payload expire, and the next <code class="inline">Read()</code> transparently falls back to the
+                    <code class="inline">Source</code>. The regime is self-balancing — memory tracks activity, not history.</p>
+            </section>
+
+            <!-- ─────────── 5 · API ─────────── -->
+            <section id="api">
+                <p class="kicker" style="color:#1864ab">Section 05</p>
+                <h2 class="mb-4">The library APIs</h2>
+                <p class="lead-p">The public surface is deliberately small: a builder, three contracts, and eight verbs. Everything
+                    else lives behind interfaces you implement (<code class="inline">FlushSink</code>,
+                    <code class="inline">Source</code>, <code class="inline">MetricsRecorder</code>).</p>
+
+                <h3 class="h5 mt-4 mb-3">5.1 · Construction and lifecycle</h3>
+                <pre class="code"><span class="tok-c">// Build a fully-wired instance. Contracts are the only domain code you write.</span>
+s, err := sluice.<span class="tok-f">New</span>(<span class="tok-s">"nudge_inventory"</span>).
+    <span class="tok-f">WithRedis</span>(sluice.RedisConfig{Addrs: []<span class="tok-t">string</span>{<span class="tok-s">"redis:6379"</span>}}).
+    <span class="tok-f">WithSink</span>(sk).                      <span class="tok-c">// write side  (required)</span>
+    <span class="tok-f">WithWriteContract</span>(contract).       <span class="tok-c">// write side  (required)</span>
+    <span class="tok-f">WithSource</span>(src).                   <span class="tok-c">// read side   (with ReadContract)</span>
+    <span class="tok-f">WithReadContract</span>(readContract).    <span class="tok-c">// read side</span>
+    <span class="tok-f">WithIndexContract</span>(indexContract).  <span class="tok-c">// enables Query()</span>
+    <span class="tok-f">Build</span>(ctx)
+<span class="tok-k">defer</span> s.<span class="tok-f">DrainAndClose</span>(ctx)          <span class="tok-c">// flush in-flight, stop batcher &amp; DLQ ticker</span></pre>
+
+                <h3 class="h5 mt-5 mb-3">5.2 · Write path</h3>
+                <div class="table-responsive">
+                    <table class="table table-bordered align-middle">
+                        <thead class="table-dark"><tr><th>Method</th><th>Semantics</th></tr></thead>
+                        <tbody>
+                        <tr><td>Write(ctx, user, payload)</td><td>Absorbs the event into the journal; returns immediately. On a hot key, also raises the hot flush trigger. Falls back to direct sink writes in degraded mode.</td></tr>
+                        <tr><td>WriteIdempotent(ctx, user, payload, key)</td><td>Write guarded by SETNX EX. Replays return <code class="inline">ErrDuplicateIdempotencyKey</code> so consumers can ACK without re-journalling.</td></tr>
+                        <tr><td>OnFlush(callback)</td><td>Invoked after every BulkWrite attempt — success or failure — with the key list, result counts and per-key errors.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3 class="h5 mt-5 mb-3">5.3 · Read path &amp; regime</h3>
+                <div class="table-responsive">
+                    <table class="table table-bordered align-middle">
+                        <thead class="table-dark"><tr><th>Method</th><th>Semantics</th></tr></thead>
+                        <tbody>
+                        <tr><td>HotLoad(ctx, user)</td><td>Promote to hot: Source.Read → seed journal → set hot marker (ActivityWindow). Returns the warmed payload.</td></tr>
+                        <tr><td>Read(ctx, user)</td><td>Hot → pipelined HGET+PTTL with lazy refresh. Cold → Source fallback. Absent everywhere → <code class="inline">ErrRecordNotFound</code>.</td></tr>
+                        <tr><td>IsHot(ctx, user)</td><td>One EXISTS against the hot marker. Observability hook for dashboards and routing decisions.</td></tr>
+                        <tr><td>Query(ctx, Query)</td><td>Compound lookup over resident state: equality SINTER per band + ZSCORE range checks. Returns <code class="inline">[]QueryResult{CorrelationKey, Payload}</code>.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <pre class="code"><span class="tok-c">// The hot regime in four lines of application code</span>
+payload, err := s.<span class="tok-f">HotLoad</span>(ctx, user)          <span class="tok-c">// user logs in</span>
+payload, err  = s.<span class="tok-f">Read</span>(ctx, user)             <span class="tok-c">// sync HTTP — sub-ms while hot</span>
+hot, err     := s.<span class="tok-f">IsHot</span>(ctx, user)            <span class="tok-c">// observability</span>
+res, err     := s.<span class="tok-f">Query</span>(ctx, sluice.Query{   <span class="tok-c">// live-state compound lookup</span>
+    Equality: <span class="tok-k">map</span>[<span class="tok-t">string</span>]<span class="tok-t">string</span>{<span class="tok-s">"channel"</span>: <span class="tok-s">"push"</span>},
+    RangeMin: <span class="tok-k">map</span>[<span class="tok-t">string</span>]<span class="tok-t">float64</span>{<span class="tok-s">"priority"</span>: <span class="tok-n">3</span>},
+})</pre>
+
+                <h3 class="h5 mt-5 mb-3">5.4 · Dead-letter operations</h3>
+                <pre class="code">result, err := s.<span class="tok-f">ProcessDLQ</span>(ctx, sluice.DLQUpsert,
+    sluice.<span class="tok-f">WithDLQBatchSize</span>(<span class="tok-n">500</span>),
+    sluice.<span class="tok-f">WithKeyMutator</span>(<span class="tok-k">func</span>(k <span class="tok-t">string</span>) <span class="tok-t">string</span> { <span class="tok-k">return</span> k + <span class="tok-s">":retry"</span> }),
+    sluice.<span class="tok-f">WithDLQLogger</span>(slog.<span class="tok-f">Default</span>()),
+)
+<span class="tok-c">// result.Processed / .Succeeded / .Failed</span>
+<span class="tok-c">// or let sluice own the cadence:</span>
+<span class="tok-c">//   WithDLQAutoProcess(2*time.Minute, sluice.DLQUpsert)</span></pre>
+
+                <h3 class="h5 mt-5 mb-3">5.5 · The three contracts</h3>
+                <div class="row g-3">
+                    <div class="col-md-4"><div class="card h-100 border-2" style="border-color:var(--jr-b)">
+                        <div class="card-body" style="background:var(--jr-f)">
+                            <h4 class="h6" style="color:var(--jr-t)">WriteContract</h4>
+                            <p class="small mb-1" style="color:var(--jr-t)"><code class="inline">(user, payload) → *WriteModel</code></p>
+                            <p class="small mb-0" style="color:var(--jr-t)">Translates opaque bytes into a resolved upsert (Filter / Update / Upsert).
+                                Called once per key per flush — never on the Write() hot path.</p>
+                        </div></div></div>
+                    <div class="col-md-4"><div class="card h-100 border-2" style="border-color:var(--hot-b)">
+                        <div class="card-body" style="background:var(--hot-f)">
+                            <h4 class="h6" style="color:var(--hot-t)">ReadContract</h4>
+                            <p class="small mb-1" style="color:var(--hot-t)"><code class="inline">(user) → *source.ReadModel</code></p>
+                            <p class="small mb-0" style="color:var(--hot-t)">Returns a datastore-agnostic filter. The Source executes it —
+                                your domain code never imports a driver.</p>
+                        </div></div></div>
+                    <div class="col-md-4"><div class="card h-100 border-2" style="border-color:var(--rd-b)">
+                        <div class="card-body" style="background:var(--rd-f)">
+                            <h4 class="h6" style="color:var(--rd-t)">IndexContract</h4>
+                            <p class="small mb-1" style="color:var(--rd-t)"><code class="inline">(user, payload) → map[string]any</code></p>
+                            <p class="small mb-0" style="color:var(--rd-t)">Projects index fields: strings become equality SETs, numbers become
+                                range ZSETs, anything else is ignored.</p>
+                        </div></div></div>
+                </div>
+
+                <h3 class="h5 mt-5 mb-3">5.6 · Pluggable persistence, both directions</h3>
+                <div class="row g-3">
+                    <div class="col-md-6">
+<pre class="code mb-0"><span class="tok-c">// write side</span>
+<span class="tok-k">type</span> <span class="tok-t">FlushSink</span> <span class="tok-k">interface</span> {
+    <span class="tok-f">BulkWrite</span>(ctx, models) (*BulkWriteResult, <span class="tok-t">error</span>)
+    <span class="tok-f">Write</span>(ctx, model) <span class="tok-t">error</span>      <span class="tok-c">// degraded mode</span>
+    <span class="tok-f">Ping</span>(ctx) <span class="tok-t">error</span>
+    <span class="tok-f">Close</span>(ctx) <span class="tok-t">error</span>
+}</pre>
+                    </div>
+                    <div class="col-md-6">
+<pre class="code mb-0"><span class="tok-c">// read side — symmetric by design</span>
+<span class="tok-k">type</span> <span class="tok-t">Source</span> <span class="tok-k">interface</span> {
+    <span class="tok-f">Read</span>(ctx, model) ([]<span class="tok-t">byte</span>, <span class="tok-t">error</span>)
+    <span class="tok-f">Ping</span>(ctx) <span class="tok-t">error</span>
+    <span class="tok-f">Close</span>(ctx) <span class="tok-t">error</span>
+}</pre>
+                    </div>
+                </div>
+                <p class="lead-p mt-3"><code class="inline">sink/docdb</code> and <code class="inline">source/docdb</code> ship in the
+                    box; <code class="inline">NewSourceWithClient(sk.Client(), …)</code> runs both paths over a single Mongo connection
+                    pool. <code class="inline">source.ErrRecordNotFound</code> is translated to the public
+                    <code class="inline">sluice.ErrRecordNotFound</code>, so callers never import the <code class="inline">source</code>
+                    package for error handling.</p>
+
+                <h3 class="h5 mt-5 mb-3">5.7 · Telemetry and errors</h3>
+                <p class="lead-p"><code class="inline">MetricsRecorder</code> exposes eleven hooks; the three regime-specific ones are
+                    the ones to alert on. <code class="inline">RecordRead(ns, d, isHot, err)</code>'s <code class="inline">isHot</code>
+                    flag is your hot-hit ratio: a falling ratio means sessions are ageing out before their traffic finishes, i.e.
+                    <code class="inline">ActivityWindow</code> is too short. <code class="inline">RecordWarmUp</code> tracks HotLoad
+                    latency; <code class="inline">RecordHotSetSize</code> tracks resident hot keys — your Redis memory forecast.</p>
+
+                <div class="table-responsive">
+                    <table class="table table-bordered align-middle">
+                        <thead class="table-dark"><tr><th>Sentinel error</th><th>Raised by</th><th>Meaning</th></tr></thead>
+                        <tbody>
+                        <tr><td>ErrRecordNotFound</td><td>Read, HotLoad</td><td>Absent from journal and source alike</td></tr>
+                        <tr><td>ErrDuplicateIdempotencyKey</td><td>WriteIdempotent</td><td>Guard already consumed — ACK and move on</td></tr>
+                        <tr><td>ErrMissingReadContract</td><td>HotLoad</td><td>No Source / ReadContract configured</td></tr>
+                        <tr><td>ErrRedisUnavailable</td><td>Write</td><td>Redis down and DegradedModeDirect off</td></tr>
+                        <tr><td>ErrContractViolation</td><td>degraded Write</td><td>WriteContract rejected the payload</td></tr>
+                        <tr><td>ErrLibraryClosed</td><td>everything</td><td>Called after DrainAndClose</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- ─────────── 6 · CONFIG ─────────── -->
+            <section id="config">
+                <p class="kicker" style="color:#1864ab">Section 06</p>
+                <h2 class="mb-4">Configuration</h2>
+                <p class="lead-p">Every knob is a builder method with a production-safe default; nothing is required except Redis, a
+                    sink and a write contract. The tables below pair each knob with the failure mode it controls.</p>
+
+                <h3 class="h5 mt-4 mb-3">6.1 · Write path</h3>
+                <div class="table-responsive">
+                    <table class="table table-bordered align-middle">
+                        <thead class="table-dark"><tr><th>Builder method</th><th>Default</th><th>What it controls</th></tr></thead>
+                        <tbody>
+                        <tr><td>WithFlushWindow(d)</td><td>250 ms</td><td>Max dirty-key age → caps document-store staleness</td></tr>
+                        <tr><td>WithMaxBatchSize(n)</td><td>1000</td><td>Keys per BulkWrite; also the volume-trigger threshold</td></tr>
+                        <tr><td>WithBandCount(n)</td><td>16</td><td>Parallel flush goroutines / dirty-set partitions</td></tr>
+                        <tr><td>WithKeyTTL(d)</td><td>30 s</td><td>In-flight payload TTL — crash net and pre-eviction bound</td></tr>
+                        <tr><td>WithDegradedModeDirect(b)</td><td>true</td><td>Fall back to single-doc writes when Redis is down</td></tr>
+                        <tr><td>WithBatchedWrites(size, win)</td><td>disabled</td><td>Pipeline Write() calls: ⌈N/size⌉ round-trips instead of N. For &gt;10K writes/sec</td></tr>
+                        <tr><td>WithContentDedup(b)</td><td>false</td><td>xxHash64 fingerprinting — skip redundant writes entirely</td></tr>
+                        <tr><td>WithIdempotencyTTL(d)</td><td>4 h</td><td>Retention of WriteIdempotent guards — size to upstream redelivery</td></tr>
+                        <tr><td>WithMetrics(m) / OnFlush(cb)</td><td>noop / nil</td><td>Observability seams</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3 class="h5 mt-5 mb-3">6.2 · Read path &amp; regime</h3>
+                <div class="table-responsive">
+                    <table class="table table-bordered align-middle">
+                        <thead class="table-dark"><tr><th>Builder method</th><th>Default</th><th>What it controls</th></tr></thead>
+                        <tbody>
+                        <tr><td>WithSource(s)</td><td>nil</td><td>Read-side store; required with WithReadContract (Build validates)</td></tr>
+                        <tr><td>WithReadContract(fn)</td><td>nil</td><td>user → ReadModel for HotLoad and cold Read fallback</td></tr>
+                        <tr><td>WithIndexContract(fn)</td><td>nil</td><td>Projects secondary indexes; enables Query()</td></tr>
+                        <tr><td>WithActivityWindow(d)</td><td>4 h</td><td>Hot-key residency; the lazy-refresh window is 20% of this</td></tr>
+                        <tr><td>WithHotAwareFlush(b)</td><td>true</td><td>Post-commit TTL extension; also selects the memory profile (§4.5)</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3 class="h5 mt-5 mb-3">6.3 · DLQ &amp; Redis connectivity</h3>
+                <div class="table-responsive">
+                    <table class="table table-bordered align-middle">
+                        <thead class="table-dark"><tr><th>Knob</th><th>Default</th><th>Notes</th></tr></thead>
+                        <tbody>
+                        <tr><td>WithDLQAutoProcess(i, strat)</td><td>disabled</td><td>Background ProcessDLQ ticker; stopped by DrainAndClose</td></tr>
+                        <tr><td>RedisConfig.ClusterMode</td><td>false</td><td>Must be explicit — never inferred from address count. ElastiCache CME uses ONE config endpoint</td></tr>
+                        <tr><td>RedisConfig.Username</td><td>—</td><td>Forwarded explicitly; omitting it silently AUTHs as the default ACL user</td></tr>
+                        <tr><td>RedisConfig.DB</td><td>0</td><td>Must stay 0 under cluster mode; validated at construction</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3 class="h5 mt-5 mb-3">6.4 · Three reference profiles</h3>
+                <pre class="code"><span class="tok-c">// ① Pure ingest — no read path. Transit-buffer memory profile.</span>
+sluice.<span class="tok-f">New</span>(ns).<span class="tok-f">WithRedis</span>(rc).<span class="tok-f">WithSink</span>(sk).<span class="tok-f">WithWriteContract</span>(wc).
+    <span class="tok-f">WithHotAwareFlush</span>(<span class="tok-k">false</span>).            <span class="tok-c">// 30s residency, ~25K keys at peak</span>
+    <span class="tok-f">WithBatchedWrites</span>(<span class="tok-n">200</span>, <span class="tok-n">5</span>*time.Millisecond).
+    <span class="tok-f">WithContentDedup</span>(<span class="tok-k">true</span>).
+    <span class="tok-f">Build</span>(ctx)</pre>
+                <pre class="code"><span class="tok-c">// ② Mixed workload — the defaults are already this profile.</span>
+sluice.<span class="tok-f">New</span>(ns).<span class="tok-f">WithRedis</span>(rc).<span class="tok-f">WithSink</span>(sk).<span class="tok-f">WithWriteContract</span>(wc).
+    <span class="tok-f">WithSource</span>(src).<span class="tok-f">WithReadContract</span>(rc2).<span class="tok-f">WithIndexContract</span>(ic).
+    <span class="tok-f">Build</span>(ctx)                            <span class="tok-c">// 4h window, hot-aware flush on</span></pre>
+                <pre class="code"><span class="tok-c">// ③ Read-heavy session service — long sessions, aggressive dedup.</span>
+sluice.<span class="tok-f">New</span>(ns).<span class="tok-f">WithRedis</span>(rc).<span class="tok-f">WithSink</span>(sk).<span class="tok-f">WithWriteContract</span>(wc).
+    <span class="tok-f">WithSource</span>(src).<span class="tok-f">WithReadContract</span>(rc2).
+    <span class="tok-f">WithActivityWindow</span>(<span class="tok-n">8</span> * time.Hour).
+    <span class="tok-f">WithContentDedup</span>(<span class="tok-k">true</span>).
+    <span class="tok-f">WithFlushWindow</span>(<span class="tok-n">500</span> * time.Millisecond).  <span class="tok-c">// reads served from journal; relax store lag</span>
+    <span class="tok-f">Build</span>(ctx)</pre>
+
+                <div class="alert alert-info">
+                    <strong>Tuning heuristics that have held up in production.</strong>
+                    <ul class="mb-0 mt-2">
+                        <li>Set <code class="inline">FlushWindow</code> to the staleness your readers tolerate — nothing else bounds it.</li>
+                        <li>Set <code class="inline">KeyTTL</code> ≥ 4× FlushWindow so a stalled flusher never loses payloads to TTL.</li>
+                        <li>Set <code class="inline">ActivityWindow</code> from session length (p95 login-to-logout), not from memory fear; watch <code class="inline">RecordHotSetSize</code> instead.</li>
+                        <li>Enable <code class="inline">WithBatchedWrites</code> only when per-write Redis latency, not DocumentDB, is the bottleneck.</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- ─────────── 7 · CLOSING ─────────── -->
+            <section id="closing" class="pb-4">
+                <p class="kicker" style="color:#1864ab">Section 07</p>
+                <h2 class="mb-4">Closing</h2>
+                <p class="lead-p">sluice is best understood as three decisions stacked on each other. First, that Redis should be
+                    used as a <strong style="color:var(--jr-t)">journal rather than a cache</strong>, which buys atomic absorption and
+                    free coalescing. Second, that <strong style="color:var(--cold-t)">band partitioning with hash tags</strong> makes the
+                    journal parallel and cluster-legal by construction rather than by care. Third, that the journal's contents are
+                    <strong style="color:var(--hot-t)">worth serving back</strong> — which is what the hot/cold regime exploits, turning
+                    a write-optimised buffer into the fastest read path in the system for exactly the keys that matter right now.</p>
+                <p class="lead-p">The result is a library where the caller contributes three small functions and receives, in
+                    exchange, a crash-safe, deduplicating, idempotent, cluster-aware, self-healing data plane with a dead-letter queue
+                    and a sub-millisecond read path — validated end-to-end against real Redis, Valkey-cluster, MongoDB, Kafka and SQS
+                    in CI.</p>
+
+                <div class="card border-2 shadow-sm" style="border-color:#0f6e56">
+                    <div class="card-body d-flex flex-column flex-md-row align-items-center gap-3" style="background:var(--hot-f)">
+                        <span class="fs-2">🌊</span>
+                        <div class="text-center text-md-start">
+                            <p class="mb-1 fw-bold" style="color:var(--hot-t);font-family:var(--bs-font-monospace)">go get github.com/hussainpithawala/sluice-go@v1.0.7</p>
+                            <p class="mb-0 small" style="color:var(--hot-t)">MIT licensed · Redis &amp; Valkey compatible · DocumentDB / MongoDB sinks and sources in the box</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+</div>
+
+<footer class="border-top bg-white py-4 mt-5">
+    <div class="container d-flex flex-column flex-md-row justify-content-between gap-2 small text-secondary" style="font-family:var(--bs-font-monospace)">
+        <span>sluice · a velocity shield &amp; hot-state journal for document stores</span>
+        <span>article · v1.0.7 · built with Bootstrap 5</span>
+    </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

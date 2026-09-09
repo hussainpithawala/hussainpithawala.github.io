@@ -116,6 +116,395 @@
         </div>
     </section>
 
+    <!-- Portfolio Section -->
+    <section id="portfolio" class="portfolio section">
+        <div class="container section-title">
+            <h2>Distributed Systems Platform Lab</h2>
+            <p>I build foundational primitives for distributed systems, workflow orchestration, and experimentation
+                infrastructure.</p>
+        </div>
+        <div class="container" data-aos="fade-up" data-aos-delay="100">
+            <div class="row g-4">
+                <!-- ═══════════════════════════════════════════════════════════════════ -->
+                <!-- SLUICE-GO PROJECT CARD                                             -->
+                <!-- ═══════════════════════════════════════════════════════════════════ -->
+                <div class="col-lg-12">
+                    <div class="card h-100 shadow-sm border-0">
+                        <div class="card-body">
+                            <!-- ── Header with icon ──────────────────────────────────── -->
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="me-3">
+                                    <div class="icon-box bg-light rounded p-2">
+                                        <i class="bi bi-shield-check text-primary"></i>
+                                    </div>
+                                </div>
+                                <div>
+                                    <h5 class="fw-bold mb-0">Sluice: Velocity Shield &amp; Hot-State Journal</h5>
+                                    <p class="text-muted mb-0">Real-Time Data Access · Redis/Valkey · DocumentDB · Kafka/SQS</p>
+                                </div>
+                            </div>
+
+                            <!-- ── Description ───────────────────────────────────────── -->
+                            <p>
+                                A production-grade velocity shield and hot-state journal for document stores.
+                                Absorbs <strong>100K TPS write spikes</strong> into a Redis-backed state journal, coalesces them into
+                                ~100 <code>BulkWrite</code> calls/sec (~1,000× I/O reduction), and serves
+                                <strong>sub-millisecond reads</strong> for active sessions via Hot/Cold regimes.
+                                Powers hyper-personalization for <strong>10M+ customers</strong>.
+                            </p>
+
+                            <!-- ── Architecture ──────────────────────────────────────── -->
+                            <p class="fw-semibold mb-2">Architecture &amp; Mechanics</p>
+                            <ul class="architecture-list">
+                                <li><strong>Velocity Shield</strong> → Atomic writes absorb 100K TPS; content dedup skips redundant payloads.</li>
+                                <li><strong>Flush Engine</strong> → Multi-trigger drain with two-phase commit; crash-safe by construction.</li>
+                                <li><strong>Hot/Cold Regime</strong> → <code>HotLoad()</code> promotes keys to sub-ms reads; silent demotion on expiry.</li>
+                                <li><strong>Queryable Journal</strong> → Secondary indexes serve compound lookups without a DB round-trip.</li>
+                            </ul>
+
+                            <!-- ── Tech stack ────────────────────────────────────────── -->
+                            <p class="fw-semibold mb-2">Tech Stack</p>
+                            <div class="mb-3">
+                                <span class="badge bg-light text-dark border me-1 mb-1">Go 1.25</span>
+                                <span class="badge bg-light text-dark border me-1 mb-1">Redis / Valkey Cluster</span>
+                                <span class="badge bg-light text-dark border me-1 mb-1">Lua</span>
+                                <span class="badge bg-light text-dark border me-1 mb-1">AWS DocumentDB</span>
+                                <span class="badge bg-light text-dark border me-1 mb-1">MongoDB v2 Driver</span>
+                                <span class="badge bg-light text-dark border me-1 mb-1">Kafka / SQS</span>
+                            </div>
+
+                            <!-- ── Components table ──────────────────────────────────── -->
+                            <div class="table-responsive mt-3">
+                                <table class="table table-borderless mb-0">
+                                    <thead>
+                                    <tr class="text-muted small">
+                                        <th>Component</th>
+                                        <th>GitHub</th>
+                                        <th>Status</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    <tr>
+                                        <td><strong>Core Library &amp; Shield</strong></td>
+                                        <td>
+                                            <a href="https://github.com/hussainpithawala/sluice-go" target="_blank">
+                                                <i class="bi bi-github"></i> sluice-go
+                                            </a>
+                                        </td>
+                                        <td><span class="badge bg-success">Stable (v1.0.7)</span></td>
+                                    </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <!-- ── Action buttons ────────────────────────────────────── -->
+                            <div class="d-flex gap-2 flex-wrap mt-3">
+                                <a href="/sluice/deep-dive.html" target="_blank"
+                                    class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-boombox me-1"></i> Architectural Deep-Dive
+                                </a>
+                                <a href="/sluice/visualizer.html" class="btn btn-sm btn-outline-secondary" target="_blank">
+                                    <i class="bi bi-gear-fill me-1"></i> Interactive Visualizer
+                                </a>
+                                <a href="https://github.com/hussainpithawala/sluice-go" target="_blank"
+                                   class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-github me-1"></i> View on GitHub
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-12 shadow">
+                </div>
+            </div>
+            <div class="row g-4">
+
+                <!-- 1. Prayog: Experimentation Platform -->
+                <div class="col-lg-6">
+                    <div class="card h-100 shadow-sm border-0">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="me-3">
+                                    <div class="icon-box bg-light rounded p-2">
+                                        <i class="bi bi-graph-up text-primary"></i>
+                                    </div>
+                                </div>
+                                <div>
+                                    <h5 class="fw-bold mb-0">Prayog: Experimentation Platform</h5>
+                                    <p class="text-muted mb-0">A/B Testing · Multi-Armed Bandits · Thompson Sampling</p>
+                                </div>
+                            </div>
+                            <p>
+                                A full-scale experimentation system to run A/B/n tests with advanced configurations.
+                                Supports real-time event streaming to multiple destinations (e.g., analytics, ML
+                                models).
+                            </p>
+                            <div class="d-flex flex-wrap gap-2 mb-3">
+                                <span class="badge bg-light text-dark border">Python</span>
+                                <span class="badge bg-light text-dark border">FastAPI</span>
+                                <span class="badge bg-light text-dark border">Cassandra</span>
+                                <span class="badge bg-light text-dark border">OpenTelemetry</span>
+                                <span class="badge bg-light text-dark border">Prometheus/Grafana</span>
+                            </div>
+                            <div class="table-responsive mt-3">
+                                <table class="table table-borderless mb-0">
+                                    <thead>
+                                    <tr class="text-muted small">
+                                        <th>Language</th>
+                                        <th>GitHub</th>
+                                        <th>Status</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    <tr>
+                                        <td><strong>Python</strong></td>
+                                        <td>
+                                            <a href="https://github.com/hussainpithawala/prayog-api" target="_blank">
+                                                <i class="bi bi-github"></i> prayog-api
+                                            </a>
+                                        </td>
+                                        <td><span class="badge bg-warning text-dark">Work in Progress</span></td>
+                                    </tr>
+                                    <!-- Add more rows as you implement -->
+                                    <!--
+                                    <tr>
+                                      <td><strong>Python</strong></td>
+                                      <td><i class="bi bi-github"></i> state-machine-amz-py</td>
+                                      <td><span class="badge bg-secondary">Planned</span></td>
+                                    </tr>
+                                    -->
+                                    </tbody>
+                                </table>
+                            </div>
+                            <a href="https://github.com/hussainpithawala?tab=repositories&q=prayog" target="_blank"
+                               class="btn btn-sm btn-outline-primary mt-3">
+                                <i class="bi bi-github me-1"></i> All Repositories
+                            </a>
+                            <p class="mt-2 mb-0"><em>Work in Progress</em></p>
+                            <p class="mt-2 mb-0"><em>Implementation phase – expected Q2 2026</em></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. Workflow State Machine Engine -->
+                <div class="col-lg-6">
+                    <div class="card h-100 shadow-sm border-0">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="me-3">
+                                    <div class="icon-box bg-light rounded p-2">
+                                        <i class="bi bi-diagram-3 text-primary"></i>
+                                    </div>
+                                </div>
+                                <div>
+                                    <h5 class="fw-bold mb-0">Workflow State Machine Engine</h5>
+                                    <p class="text-muted mb-0">Distributed Orchestration · AWS States Language</p>
+                                </div>
+                            </div>
+                            <p>
+                                A production-grade orchestration platform that runs complex workflows using Amazon
+                                States Language
+                                compatible definitions and event-driven execution primitives.
+                            </p>
+                            <p class="fw-semibold mb-2">Architecture</p>
+                            <ul class="mb-3">
+                                <li><strong>Control Plane</strong> &rarr; state definitions</li>
+                                <li><strong>Execution Engine</strong> &rarr; state transitions</li>
+                                <li><strong>Workers</strong> &rarr; service tasks</li>
+                            </ul>
+
+                            <div class="table-responsive mt-3">
+                                <table class="table table-borderless mb-0">
+                                    <thead>
+                                    <tr class="text-muted small">
+                                        <th>Component</th>
+                                        <th>GitHub</th>
+                                        <th>Status</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    <tr>
+                                        <td><strong>Execution Engine</strong></td>
+                                        <td>
+                                            <a href="https://github.com/hussainpithawala/state-machine-amz-go"
+                                               target="_blank">
+                                                <i class="bi bi-github"></i> state-machine-amz-go
+                                            </a>
+                                        </td>
+                                        <td><span class="badge bg-success">Stable</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Control Plane API</strong></td>
+                                        <td>
+                                            <a href="https://github.com/hussainpithawala/state-machine-amz-gin"
+                                               target="_blank">
+                                                <i class="bi bi-github"></i> state-machine-amz-gin
+                                            </a>
+                                        </td>
+                                        <td><span class="badge bg-success">Stable</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Control Plane Portal</strong></td>
+                                        <td>
+                                            <a href="https://github.com/hussainpithawala/state-machine-amz-portal"
+                                               target="_blank">
+                                                <i class="bi bi-github"></i> state-machine-amz-portal
+                                            </a>
+                                        </td>
+                                        <td><span class="badge bg-success">Stable</span></td>
+                                    </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <a href="https://github.com/hussainpithawala?tab=repositories&q=state-machine-amz"
+                               target="_blank" class="btn btn-sm btn-outline-primary mt-3">
+                                <i class="bi bi-github me-1"></i> All Repositories
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. EMV CO QR Code Implementation -->
+                <div class="col-lg-6 mt-4">
+                    <div class="card shadow-sm border-0">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="me-3">
+                                    <div class="icon-box bg-light rounded p-2">
+                                        <i class="bi bi-shield-lock text-primary"></i>
+                                    </div>
+                                </div>
+                                <div>
+                                    <h5 class="fw-bold mb-0">Distributed Business Circuit Breaker</h5>
+                                    <p class="text-muted mb-0">Resilience · Multi-language · Real-time State Sync</p>
+                                </div>
+                            </div>
+                            <p>
+                                A library to implement business-level circuit breakers that can be synchronized across
+                                services.
+                                Supports dynamic thresholds, failure windows, and real-time state propagation (via
+                                Redis, DynamoDB, or gRPC).
+                                Planned for Go, Java, and Python.
+                            </p>
+                            <div class="d-flex flex-wrap gap-2 mb-3">
+                                <span class="badge bg-light text-dark border">Go</span>
+                                <span class="badge bg-light text-dark border">Java</span>
+                                <span class="badge bg-light text-dark border">Redis</span>
+                                <span class="badge bg-light text-dark border">Event-Driven</span>
+                            </div>
+                            <p class="mt-2 mb-0"><em>Coming Soon</em></p>
+                            <p class="mt-2 mb-0"><em>Design phase – expected Q2 2026</em></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. EMV CO QR Code Implementation -->
+                <div class="col-lg-6">
+                    <div class="card h-100 shadow-sm border-0">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="me-3">
+                                    <div class="icon-box bg-light rounded p-2">
+                                        <i class="bi bi-diagram-3 text-primary"></i>
+                                    </div>
+                                </div>
+                                <div>
+                                    <h5 class="fw-bold mb-0">emv-qr-code-*</h5>
+                                    <p class="text-muted mb-0">Encoder/Decoder library for EMV® QR Code payloads </p>
+                                </div>
+                            </div>
+                            <p>
+                                Encoder/Decoder libraries for EMV® QR Code payloads as defined in the
+                                EMV QR Code Specification for Payment Systems (EMV QRCPS) – Merchant-Presented Mode
+                                v1.0.
+                            </p>
+
+                            <div class="table-responsive mt-3">
+                                <table class="table table-borderless mb-0">
+                                    <thead>
+                                    <tr class="text-muted small">
+                                        <th>Language</th>
+                                        <th>GitHub</th>
+                                        <th>Status</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    <tr>
+                                        <td><strong>Go</strong></td>
+                                        <td>
+                                            <a href="https://github.com/hussainpithawala/emv-merchant-qr-lib"
+                                               target="_blank">
+                                                <i class="bi bi-github"></i> emv-merchant-qr-lib
+                                            </a>
+                                        </td>
+                                        <td><span class="badge bg-success">Stable</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>TypeScript</strong></td>
+                                        <td>
+                                            <a href="https://github.com/hussainpithawala/emv-merchant-qr-lib-ts"
+                                               target="_blank">
+                                                <i class="bi bi-github"></i> emv-merchant-qr-lib-ts
+                                            </a>
+                                        </td>
+                                        <td><span class="badge bg-success">Stable</span></td>
+                                    </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <a href="https://github.com/hussainpithawala?tab=repositories&q=emv-merchant-qr-lib"
+                               target="_blank" class="btn btn-sm btn-outline-primary mt-3">
+                                <i class="bi bi-github me-1"></i> All Repositories
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+
+    <!-- Platforms Section -->
+    <section id="platforms" class="platforms section">
+        <div class="container section-title">
+            <h2>Platforms Built</h2>
+        </div>
+        <div class="container" data-aos="fade-up" data-aos-delay="100">
+            <div class="row g-4">
+                <div class="col-md-6" data-aos="fade-up" data-aos-delay="200">
+                    <article class="platform-card">
+                        <h3>UPI Payments Platform</h3>
+                        <p>Cloud-native payment processing platform powering UPI transactions for Kotak811. Built on
+                            event-driven microservices with high observability and resilience.</p>
+                    </article>
+                </div>
+                <div class="col-md-6" data-aos="fade-up" data-aos-delay="250">
+                    <article class="platform-card">
+                        <h3>Customer Engagement Platform (Ad-Roll)</h3>
+                        <p>In-house nudges platform serving personalized campaigns to 10M+ customers daily. Combines
+                            event streaming, rule engines, and experimentation frameworks.</p>
+                    </article>
+                </div>
+                <div class="col-md-6" data-aos="fade-up" data-aos-delay="300">
+                    <article class="platform-card">
+                        <h3>Lending Workflow Platform</h3>
+                        <p>A programmable workflow engine supporting credit policy evaluation, A/B testing, shadow
+                            policy execution, and historical backtesting.</p>
+                    </article>
+                </div>
+                <div class="col-md-6" data-aos="fade-up" data-aos-delay="350">
+                    <article class="platform-card">
+                        <h3>Co-Lending Infrastructure</h3>
+                        <p>Custom lending platform enabling partner banks to co-lend with automated loan splitting,
+                            servicing, and reconciliation.</p>
+                    </article>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <!-- About Section -->
     <section id="about" class="about section">
         <div class="container section-title">
@@ -176,45 +565,6 @@
                             </div>
                         </div>
                     </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Platforms Section -->
-    <section id="platforms" class="platforms section">
-        <div class="container section-title">
-            <h2>Platforms Built</h2>
-        </div>
-        <div class="container" data-aos="fade-up" data-aos-delay="100">
-            <div class="row g-4">
-                <div class="col-md-6" data-aos="fade-up" data-aos-delay="200">
-                    <article class="platform-card">
-                        <h3>UPI Payments Platform</h3>
-                        <p>Cloud-native payment processing platform powering UPI transactions for Kotak811. Built on
-                            event-driven microservices with high observability and resilience.</p>
-                    </article>
-                </div>
-                <div class="col-md-6" data-aos="fade-up" data-aos-delay="250">
-                    <article class="platform-card">
-                        <h3>Customer Engagement Platform (Ad-Roll)</h3>
-                        <p>In-house nudges platform serving personalized campaigns to 10M+ customers daily. Combines
-                            event streaming, rule engines, and experimentation frameworks.</p>
-                    </article>
-                </div>
-                <div class="col-md-6" data-aos="fade-up" data-aos-delay="300">
-                    <article class="platform-card">
-                        <h3>Lending Workflow Platform</h3>
-                        <p>A programmable workflow engine supporting credit policy evaluation, A/B testing, shadow
-                            policy execution, and historical backtesting.</p>
-                    </article>
-                </div>
-                <div class="col-md-6" data-aos="fade-up" data-aos-delay="350">
-                    <article class="platform-card">
-                        <h3>Co-Lending Infrastructure</h3>
-                        <p>Custom lending platform enabling partner banks to co-lend with automated loan splitting,
-                            servicing, and reconciliation.</p>
-                    </article>
                 </div>
             </div>
         </div>
@@ -806,264 +1156,6 @@
                         <h3>DevOps</h3>
                         <p>AWS CDK, Terraform CDK, Azure DevOps pipelines, DR setup, Active-Active, Active-Passive,
                             Multi-AZ setups</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Portfolio Section -->
-
-    <!-- Portfolio Section -->
-    <section id="portfolio" class="portfolio section">
-        <div class="container section-title">
-            <h2>Distributed Systems Platform Lab</h2>
-            <p>I build foundational primitives for distributed systems, workflow orchestration, and experimentation
-                infrastructure.</p>
-        </div>
-        <div class="container" data-aos="fade-up" data-aos-delay="100">
-            <div class="row g-4">
-
-                <!-- 1. Prayog: Experimentation Platform -->
-                <div class="col-lg-6">
-                    <div class="card h-100 shadow-sm border-0">
-                        <div class="card-body">
-                            <div class="d-flex align-items-center mb-3">
-                                <div class="me-3">
-                                    <div class="icon-box bg-light rounded p-2">
-                                        <i class="bi bi-graph-up text-primary"></i>
-                                    </div>
-                                </div>
-                                <div>
-                                    <h5 class="fw-bold mb-0">Prayog: Experimentation Platform</h5>
-                                    <p class="text-muted mb-0">A/B Testing · Multi-Armed Bandits · Thompson Sampling</p>
-                                </div>
-                            </div>
-                            <p>
-                                A full-scale experimentation system to run A/B/n tests with advanced configurations.
-                                Supports real-time event streaming to multiple destinations (e.g., analytics, ML
-                                models).
-                            </p>
-                            <div class="d-flex flex-wrap gap-2 mb-3">
-                                <span class="badge bg-light text-dark border">Python</span>
-                                <span class="badge bg-light text-dark border">FastAPI</span>
-                                <span class="badge bg-light text-dark border">Cassandra</span>
-                                <span class="badge bg-light text-dark border">OpenTelemetry</span>
-                                <span class="badge bg-light text-dark border">Prometheus/Grafana</span>
-                            </div>
-                            <div class="table-responsive mt-3">
-                                <table class="table table-borderless mb-0">
-                                    <thead>
-                                    <tr class="text-muted small">
-                                        <th>Language</th>
-                                        <th>GitHub</th>
-                                        <th>Status</th>
-                                    </tr>
-                                    </thead>
-                                    <tbody>
-                                    <tr>
-                                        <td><strong>Python</strong></td>
-                                        <td>
-                                            <a href="https://github.com/hussainpithawala/prayog-api" target="_blank">
-                                                <i class="bi bi-github"></i> prayog-api
-                                            </a>
-                                        </td>
-                                        <td><span class="badge bg-warning text-dark">Work in Progress</span></td>
-                                    </tr>
-                                    <!-- Add more rows as you implement -->
-                                    <!--
-                                    <tr>
-                                      <td><strong>Python</strong></td>
-                                      <td><i class="bi bi-github"></i> state-machine-amz-py</td>
-                                      <td><span class="badge bg-secondary">Planned</span></td>
-                                    </tr>
-                                    -->
-                                    </tbody>
-                                </table>
-                            </div>
-                            <a href="https://github.com/hussainpithawala?tab=repositories&q=prayog" target="_blank"
-                               class="btn btn-sm btn-outline-primary mt-3">
-                                <i class="bi bi-github me-1"></i> All Repositories
-                            </a>
-                            <p class="mt-2 mb-0"><em>Work in Progress</em></p>
-                            <p class="mt-2 mb-0"><em>Implementation phase – expected Q2 2026</em></p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 2. Workflow State Machine Engine -->
-                <div class="col-lg-6">
-                    <div class="card h-100 shadow-sm border-0">
-                        <div class="card-body">
-                            <div class="d-flex align-items-center mb-3">
-                                <div class="me-3">
-                                    <div class="icon-box bg-light rounded p-2">
-                                        <i class="bi bi-diagram-3 text-primary"></i>
-                                    </div>
-                                </div>
-                                <div>
-                                    <h5 class="fw-bold mb-0">Workflow State Machine Engine</h5>
-                                    <p class="text-muted mb-0">Distributed Orchestration · AWS States Language</p>
-                                </div>
-                            </div>
-                            <p>
-                                A production-grade orchestration platform that runs complex workflows using Amazon
-                                States Language
-                                compatible definitions and event-driven execution primitives.
-                            </p>
-                            <p class="fw-semibold mb-2">Architecture</p>
-                            <ul class="mb-3">
-                                <li><strong>Control Plane</strong> &rarr; state definitions</li>
-                                <li><strong>Execution Engine</strong> &rarr; state transitions</li>
-                                <li><strong>Workers</strong> &rarr; service tasks</li>
-                            </ul>
-
-                            <div class="table-responsive mt-3">
-                                <table class="table table-borderless mb-0">
-                                    <thead>
-                                    <tr class="text-muted small">
-                                        <th>Component</th>
-                                        <th>GitHub</th>
-                                        <th>Status</th>
-                                    </tr>
-                                    </thead>
-                                    <tbody>
-                                    <tr>
-                                        <td><strong>Execution Engine</strong></td>
-                                        <td>
-                                            <a href="https://github.com/hussainpithawala/state-machine-amz-go"
-                                               target="_blank">
-                                                <i class="bi bi-github"></i> state-machine-amz-go
-                                            </a>
-                                        </td>
-                                        <td><span class="badge bg-success">Stable</span></td>
-                                    </tr>
-                                    <tr>
-                                        <td><strong>Control Plane API</strong></td>
-                                        <td>
-                                            <a href="https://github.com/hussainpithawala/state-machine-amz-gin"
-                                               target="_blank">
-                                                <i class="bi bi-github"></i> state-machine-amz-gin
-                                            </a>
-                                        </td>
-                                        <td><span class="badge bg-success">Stable</span></td>
-                                    </tr>
-                                    <tr>
-                                        <td><strong>Control Plane Portal</strong></td>
-                                        <td>
-                                            <a href="https://github.com/hussainpithawala/state-machine-amz-portal"
-                                               target="_blank">
-                                                <i class="bi bi-github"></i> state-machine-amz-portal
-                                            </a>
-                                        </td>
-                                        <td><span class="badge bg-success">Stable</span></td>
-                                    </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-
-                            <a href="https://github.com/hussainpithawala?tab=repositories&q=state-machine-amz"
-                               target="_blank" class="btn btn-sm btn-outline-primary mt-3">
-                                <i class="bi bi-github me-1"></i> All Repositories
-                            </a>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 3. EMV CO QR Code Implementation -->
-                <div class="col-lg-6 mt-4">
-                    <div class="card shadow-sm border-0">
-                        <div class="card-body">
-                            <div class="d-flex align-items-center mb-3">
-                                <div class="me-3">
-                                    <div class="icon-box bg-light rounded p-2">
-                                        <i class="bi bi-shield-lock text-primary"></i>
-                                    </div>
-                                </div>
-                                <div>
-                                    <h5 class="fw-bold mb-0">Distributed Business Circuit Breaker</h5>
-                                    <p class="text-muted mb-0">Resilience · Multi-language · Real-time State Sync</p>
-                                </div>
-                            </div>
-                            <p>
-                                A library to implement business-level circuit breakers that can be synchronized across
-                                services.
-                                Supports dynamic thresholds, failure windows, and real-time state propagation (via
-                                Redis, DynamoDB, or gRPC).
-                                Planned for Go, Java, and Python.
-                            </p>
-                            <div class="d-flex flex-wrap gap-2 mb-3">
-                                <span class="badge bg-light text-dark border">Go</span>
-                                <span class="badge bg-light text-dark border">Java</span>
-                                <span class="badge bg-light text-dark border">Redis</span>
-                                <span class="badge bg-light text-dark border">Event-Driven</span>
-                            </div>
-                            <p class="mt-2 mb-0"><em>Coming Soon</em></p>
-                            <p class="mt-2 mb-0"><em>Design phase – expected Q2 2026</em></p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 4. EMV CO QR Code Implementation -->
-                <div class="col-lg-6">
-                    <div class="card h-100 shadow-sm border-0">
-                        <div class="card-body">
-                            <div class="d-flex align-items-center mb-3">
-                                <div class="me-3">
-                                    <div class="icon-box bg-light rounded p-2">
-                                        <i class="bi bi-diagram-3 text-primary"></i>
-                                    </div>
-                                </div>
-                                <div>
-                                    <h5 class="fw-bold mb-0">emv-qr-code-*</h5>
-                                    <p class="text-muted mb-0">Encoder/Decoder library for EMV® QR Code payloads </p>
-                                </div>
-                            </div>
-                            <p>
-                                Encoder/Decoder libraries for EMV® QR Code payloads as defined in the
-                                EMV QR Code Specification for Payment Systems (EMV QRCPS) – Merchant-Presented Mode
-                                v1.0.
-                            </p>
-
-                            <div class="table-responsive mt-3">
-                                <table class="table table-borderless mb-0">
-                                    <thead>
-                                    <tr class="text-muted small">
-                                        <th>Language</th>
-                                        <th>GitHub</th>
-                                        <th>Status</th>
-                                    </tr>
-                                    </thead>
-                                    <tbody>
-                                    <tr>
-                                        <td><strong>Go</strong></td>
-                                        <td>
-                                            <a href="https://github.com/hussainpithawala/emv-merchant-qr-lib"
-                                               target="_blank">
-                                                <i class="bi bi-github"></i> emv-merchant-qr-lib
-                                            </a>
-                                        </td>
-                                        <td><span class="badge bg-success">Stable</span></td>
-                                    </tr>
-                                    <tr>
-                                        <td><strong>TypeScript</strong></td>
-                                        <td>
-                                            <a href="https://github.com/hussainpithawala/emv-merchant-qr-lib-ts"
-                                               target="_blank">
-                                                <i class="bi bi-github"></i> emv-merchant-qr-lib-ts
-                                            </a>
-                                        </td>
-                                        <td><span class="badge bg-success">Stable</span></td>
-                                    </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-
-                            <a href="https://github.com/hussainpithawala?tab=repositories&q=emv-merchant-qr-lib"
-                               target="_blank" class="btn btn-sm btn-outline-primary mt-3">
-                                <i class="bi bi-github me-1"></i> All Repositories
-                            </a>
-                        </div>
                     </div>
                 </div>
             </div>
