@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sluice v1.0.7 — Interactive Architecture Blueprint</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    html,body{height:100%}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0f1219;color:#1a202c;overflow-x:hidden}
+
+    /* ── Header ─────────────────────────────────────────────── */
+    .header{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;padding:14px 24px;display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+    .header h1{font-size:1.35em;white-space:nowrap}
+    .header .tagline{font-size:.85em;opacity:.9;flex:1;min-width:200px}
+    .badges{display:flex;gap:6px;flex-wrap:wrap}
+    .badge{background:rgba(255,255,255,.18);padding:3px 9px;border-radius:12px;font-size:.7em;white-space:nowrap}
+
+    /* ── Simulation Deck: controls + canvas on ONE screen ───── */
+    .deck{
+      display:grid;
+      grid-template-columns:1fr 290px;
+      grid-template-rows:auto 1fr auto;
+      grid-template-areas:
+    "triggers rail"
+    "stage    rail"
+    "metrics  rail";
+      gap:10px;
+      padding:10px;
+      height:calc(100vh - 62px);
+      min-height:600px;
+      background:#0f1219;
+    }
+    .triggers{grid-area:triggers;display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+    .trigger{background:#1a202c;border:2px solid #2d3748;border-radius:8px;padding:7px 10px;text-align:center;transition:all .18s}
+    .trigger h4{color:#cbd5e0;font-size:.78em;margin-bottom:2px}
+    .trigger .cond{color:#718096;font-size:.66em;line-height:1.3}
+    .trigger.active{border-color:#48bb78;background:#12331f;box-shadow:0 0 0 3px rgba(72,187,120,.22)}
+    .trigger.active h4{color:#68d391}
+
+    .stage{grid-area:stage;position:relative;background:#11151d;border:2px solid #2d3748;border-radius:10px;overflow:hidden;min-height:300px}
+    #canvas{display:block;width:100%;height:100%}
+    .stage-hint{position:absolute;top:8px;left:10px;font-size:.68em;color:#4a5568;pointer-events:none;letter-spacing:.04em;text-transform:uppercase}
+
+    .metrics{grid-area:metrics;display:grid;grid-template-columns:repeat(auto-fit,minmax(105px,1fr));gap:8px}
+    .metric{background:#1a202c;border:1px solid #2d3748;border-radius:8px;padding:8px 10px;font-family:'SF Mono',Menlo,monospace}
+    .metric .label{font-size:.62em;color:#718096;text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px}
+    .metric .value{font-size:1.22em;font-weight:700;color:#68d391}
+
+    /* ── Control rail ───────────────────────────────────────── */
+    .rail{grid-area:rail;background:#1a202c;border:2px solid #2d3748;border-radius:10px;padding:12px;overflow-y:auto;display:flex;flex-direction:column;gap:12px}
+    .rail::-webkit-scrollbar{width:6px}
+    .rail::-webkit-scrollbar-thumb{background:#2d3748;border-radius:3px}
+    .grp{border-bottom:1px solid #2d3748;padding-bottom:10px}
+    .grp:last-of-type{border-bottom:none;padding-bottom:0}
+    .grp h3{color:#a0aec0;font-size:.66em;text-transform:uppercase;letter-spacing:.09em;margin-bottom:7px}
+    .btn-row{display:flex;flex-direction:column;gap:5px}
+    button{background:#2d3748;color:#e2e8f0;border:none;padding:7px 10px;border-radius:6px;cursor:pointer;font-weight:600;font-size:.76em;transition:all .15s;text-align:left;display:flex;align-items:center;gap:7px;width:100%}
+    button:hover{background:#3d4a5c;transform:translateX(2px)}
+    button:active{transform:translateX(0)}
+    button.success{background:#22543d;color:#9ae6b4}button.success:hover{background:#276749}
+    button.warning{background:#7b341e;color:#fbd38d}button.warning:hover{background:#9c4221}
+    button.danger{background:#742a2a;color:#feb2b2}button.danger:hover{background:#9b2c2c}
+    button.cold{background:#1a237e;color:#c5cae9}button.cold:hover{background:#283593}
+    button.hot{background:#0a5041;color:#a7f3d0}button.hot:hover{background:#0f6e56}
+    button.read{background:#4527a0;color:#d1c4e9}button.read:hover{background:#5e35b1}
+    .log{background:#0d1117;border:1px solid #2d3748;border-radius:6px;padding:8px;font-family:'SF Mono',Menlo,monospace;font-size:.66em;color:#68d391;height:150px;overflow-y:auto;flex-shrink:0}
+    .log::-webkit-scrollbar{width:5px}
+    .log::-webkit-scrollbar-thumb{background:#2d3748;border-radius:3px}
+    .log .entry{margin-bottom:3px;line-height:1.4;word-break:break-word}
+    .log .ts{color:#4a5568}
+    .legend{display:flex;flex-wrap:wrap;gap:8px}
+    .legend-item{display:flex;align-items:center;gap:4px;font-size:.64em;color:#a0aec0}
+    .legend-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+    .scroll-hint{text-align:center;padding:8px;color:#4a5568;font-size:.72em;background:#0f1219;cursor:pointer;user-select:none}
+    .scroll-hint:hover{color:#68d391}
+
+    /* ── Reference sections (below the fold) ────────────────── */
+    .reference{background:#fff;padding:30px}
+    .reference > h2{font-size:1.6em;color:#1a202c;margin-bottom:6px;padding-top:10px}
+    .reference > .sub{color:#718096;font-size:.9em;margin-bottom:24px}
+    .write-paths{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px}
+    .path-box{background:linear-gradient(135deg,#f7fafc,#edf2f7);border:2px solid #e2e8f0;border-radius:12px;padding:20px}
+    .path-box.cold{border-color:#3949AB}.path-box.hot{border-color:#0F6E56}
+    .path-box h3{font-size:1.15em;margin-bottom:14px;display:flex;align-items:center;gap:10px;color:#1a202c}
+    .path-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.2em;flex-shrink:0}
+    .cold .path-icon{background:#3949AB;color:#fff}.hot .path-icon{background:#0F6E56;color:#fff}
+    .component{background:#fff;border:2px solid #cbd5e0;border-radius:8px;padding:12px;margin:9px 0}
+    .component h4{font-size:.92em;margin-bottom:5px;color:#2d3748}
+    .component .detail{font-size:.8em;color:#718096;line-height:1.55}
+    .component code,.hl code,td code{background:#edf2f7;padding:1px 4px;border-radius:3px;font-size:.92em;color:#c05621}
+    .hl{background:linear-gradient(135deg,#FFF5E6,#FFE4CC);border-left:4px solid #ED8936;padding:12px;margin:11px 0;border-radius:4px}
+    .hl h4{color:#C05621;margin-bottom:5px;font-size:.9em}
+    .hl p{font-size:.82em;color:#718096;line-height:1.5}
+    .section{border-radius:12px;padding:22px;margin-bottom:24px}
+    .journal{background:linear-gradient(135deg,#FAEEDA,#F5E6D3);border:3px solid #BA7517}
+    .journal > h3{color:#633806;margin-bottom:16px;font-size:1.3em}
+    .key-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(255px,1fr));gap:12px}
+    .redis-key{background:#fff;border:2px solid #BA7517;border-radius:8px;padding:12px}
+    .key-name{font-family:'SF Mono',Menlo,monospace;font-size:.78em;color:#633806;font-weight:700;margin-bottom:6px;word-break:break-all}
+    .key-type{font-size:.76em;color:#4a5568;margin-bottom:3px}
+    .key-ttl{font-size:.71em;color:#a0aec0;font-style:italic}
+    .engine{background:linear-gradient(135deg,#F3F4F6,#E5E7EB);border:3px solid #6B7280}
+    .engine > h3{color:#374151;margin-bottom:16px;font-size:1.3em}
+    .trigger-grid-ref{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:16px}
+    .trigger-ref{background:#fff;border:2px solid #6B7280;border-radius:8px;padding:12px;text-align:center}
+    .trigger-ref h4{color:#374151;margin-bottom:5px;font-size:.9em}
+    .trigger-ref .condition{font-size:.78em;color:#718096;line-height:1.4}
+    .readpath{background:linear-gradient(135deg,#EDE7F6,#D1C4E9);border:3px solid #5E35B1}
+    .readpath > h3{color:#311B92;margin-bottom:16px;font-size:1.3em}
+    .read-branch{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+    .branch{background:#fff;border:2px solid #5E35B1;border-radius:8px;padding:16px}
+    .branch h4{color:#311B92;margin-bottom:9px;font-size:.95em}
+    .dlq{background:linear-gradient(135deg,#FAECE7,#F5D5CB);border:3px solid #993C1D}
+    .dlq > h3{color:#712B13;margin-bottom:16px;font-size:1.3em}
+    .strategy-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:12px}
+    .strategy{background:#fff;border:2px solid #993C1D;border-radius:8px;padding:12px}
+    .strategy h4{color:#712B13;margin-bottom:6px;font-size:.9em}
+    .strategy .behavior{font-size:.8em;color:#718096;line-height:1.45}
+    table{width:100%;border-collapse:collapse;margin:14px 0;background:#fff;border-radius:8px;overflow:hidden;font-size:.84em}
+    th{background:#2d3748;color:#fff;padding:9px 12px;text-align:left;font-weight:600}
+    td{padding:8px 12px;border-bottom:1px solid #e2e8f0;color:#4a5568}
+    tr:last-child td{border-bottom:none}
+    code{font-family:'SF Mono',Menlo,monospace}
+
+    @media(max-width:1080px){
+      .deck{grid-template-columns:1fr;grid-template-areas:"triggers" "stage" "metrics" "rail";height:auto}
+      .stage{height:46vh;min-height:320px}
+      .rail{max-height:none;overflow:visible}
+      .write-paths,.read-branch{grid-template-columns:1fr}
+    }
+  </style>
+  <!-- Favicons -->
+  <link href="../assets/img/favicon.png" rel="icon">
+  <link href="../assets/img/apple-touch-icon.png" rel="apple-touch-icon">
+
+</head>
+<body>
+
+<div class="header">
+  <h1>🌊 Sluice v1.0.7</h1>
+  <div class="tagline">Real-time Data Access Platform &amp; Velocity Shield for Document Stores</div>
+  <div class="badges">
+    <span class="badge">Hot/Cold Regimes</span>
+    <span class="badge">Queryable Journal</span>
+    <span class="badge">Exactly-Once</span>
+    <span class="badge">Dedup</span>
+    <span class="badge">DLQ</span>
+    <span class="badge">Cluster Safe</span>
+  </div>
+</div>
+
+<!-- ══════════ SIMULATION DECK — controls + canvas on one screen ══════════ -->
+<div class="deck">
+
+  <div class="triggers">
+    <div class="trigger" id="trig-time"><h4>⏰ Time</h4><div class="cond">FlushWindow 250ms elapsed</div></div>
+    <div class="trigger" id="trig-volume"><h4>📊 Volume</h4><div class="cond">Dirty depth ≥ MaxBatchSize</div></div>
+    <div class="trigger" id="trig-evict"><h4>🛡️ Pre-Eviction</h4><div class="cond">Oldest key nears KeyTTL</div></div>
+    <div class="trigger" id="trig-hot"><h4>🔥 Hot</h4><div class="cond">Write() on a hot CRN</div></div>
+  </div>
+
+  <div class="stage">
+    <canvas id="canvas"></canvas>
+    <div class="stage-hint">Live data-flow · particles trace each API call through the platform</div>
+  </div>
+
+  <div class="metrics">
+    <div class="metric"><div class="label">Writes</div><div class="value" id="m-writes">0</div></div>
+    <div class="metric"><div class="label">Hot CRNs</div><div class="value" id="m-hot">0</div></div>
+    <div class="metric"><div class="label">Cold CRNs</div><div class="value" id="m-cold">0</div></div>
+    <div class="metric"><div class="label">BulkWrites</div><div class="value" id="m-bulk">0</div></div>
+    <div class="metric"><div class="label">Docs Flushed</div><div class="value" id="m-docs">0</div></div>
+    <div class="metric"><div class="label">Deduped</div><div class="value" id="m-dedup">0</div></div>
+    <div class="metric"><div class="label">DLQ Depth</div><div class="value" id="m-dlq">0</div></div>
+    <div class="metric"><div class="label">I/O Cut</div><div class="value" id="m-io">0×</div></div>
+    <div class="metric"><div class="label">Hot Reads</div><div class="value" id="m-hotread">0</div></div>
+    <div class="metric"><div class="label">Cold Reads</div><div class="value" id="m-coldread">0</div></div>
+  </div>
+
+  <div class="rail">
+    <div class="grp">
+      <h3>Simulation</h3>
+      <div class="btn-row">
+        <button id="autoRun" class="success">▶ &nbsp;Auto Run</button>
+        <button id="pause" class="warning">⏸ &nbsp;Pause</button>
+        <button id="reset" class="danger">⟲ &nbsp;Reset</button>
+      </div>
+    </div>
+
+    <div class="grp">
+      <h3>Write Paths</h3>
+      <div class="btn-row">
+        <button id="coldWrite" class="cold">❄️ &nbsp;Cold Write · stream</button>
+        <button id="hotLoad" class="hot">🔥 &nbsp;HotLoad · user login</button>
+        <button id="hotWrite" class="hot">🔥 &nbsp;Hot Write · sync API</button>
+      </div>
+    </div>
+
+    <div class="grp">
+      <h3>Read Path</h3>
+      <div class="btn-row">
+        <button id="hotRead" class="read">📖 &nbsp;Hot Read · &lt;1ms</button>
+        <button id="coldRead" class="read">📖 &nbsp;Cold Read · Source</button>
+        <button id="query" class="read">🔍 &nbsp;Compound Query</button>
+      </div>
+    </div>
+
+    <div class="grp">
+      <h3>Resilience</h3>
+      <div class="btn-row">
+        <button id="dedupWrite">🔄 &nbsp;Dedup Write · xxHash64</button>
+        <button id="idempotentWrite">🔐 &nbsp;Idempotent Write</button>
+        <button id="triggerDLQ" class="danger">⚠️ &nbsp;Trigger DLQ · 11000</button>
+        <button id="processDLQ" class="success">🛠️ &nbsp;Process DLQ · Upsert</button>
+      </div>
+    </div>
+
+    <div class="grp">
+      <h3>Legend</h3>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-dot" style="background:#5C6BC0"></div>Cold</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#26A69A"></div>Hot</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#FFB74D"></div>Flush</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#EF5350"></div>DLQ</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#AB47BC"></div>Read</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#66BB6A"></div>Dedup</div>
+      </div>
+    </div>
+
+    <div class="grp" style="flex:1;display:flex;flex-direction:column;min-height:150px">
+      <h3>Event Log</h3>
+      <div class="log" id="log"></div>
+    </div>
+  </div>
+</div>
+
+<div class="scroll-hint" id="scrollHint">▼ &nbsp;Architecture reference — key layout, flush engine, read path, DLQ &nbsp;▼</div>
+
+<script>
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
+  const stage = canvas.parentElement;
+
+  /* ── Zone geometry ─────────────────────────────────────── */
+  const ZONE_DEF = [
+    {id:'ingest', fx:.13, fy:.10, label:'SQS / KAFKA',         sub:'cold stream ingest',        color:'#3949AB'},
+    {id:'api',    fx:.87, fy:.10, label:'SYNC HTTP API',       sub:'hot session traffic',       color:'#0F6E56'},
+    {id:'journal',fx:.50, fy:.38, label:'REDIS STATE JOURNAL', sub:'payload · dirty · hot · idx', color:'#BA7517'},
+    {id:'engine', fx:.50, fy:.68, label:'FLUSH ENGINE',        sub:'16 bands · 4 triggers',     color:'#6B7280'},
+    {id:'store',  fx:.86, fy:.92, label:'DOCUMENTDB',          sub:'BulkWrite ordered=false',   color:'#993C1D'},
+    {id:'dlq',    fx:.14, fy:.92, label:'DEAD LETTER',         sub:'code 11000 · 7-day TTL',    color:'#993C1D'}
+  ];
+  let Z = {};
+  function buildZones(){
+    Z = {};
+    ZONE_DEF.forEach(d => {
+      Z[d.id] = Object.assign({}, d, {
+        x: canvas.width*d.fx, y: canvas.height*d.fy,
+        w: Math.min(195, canvas.width*0.23), h: 46
+      });
+    });
+  }
+  function resize(){
+    const r = stage.getBoundingClientRect();
+    canvas.width  = Math.max(320, r.width);
+    canvas.height = Math.max(280, r.height);
+    buildZones();
+  }
+  new ResizeObserver(resize).observe(stage);
+  window.addEventListener('resize', resize);
+
+  function roundRect(x,y,w,h,r){
+    ctx.beginPath();
+    ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r);
+    ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath();
+  }
+  function drawZones(){
+    ZONE_DEF.forEach(d=>{
+      const z=Z[d.id]; if(!z) return;
+      const x=z.x-z.w/2, y=z.y-z.h/2;
+      roundRect(x,y,z.w,z.h,8);
+      ctx.fillStyle='rgba(26,32,44,.92)'; ctx.fill();
+      ctx.strokeStyle=d.color; ctx.lineWidth=2; ctx.stroke();
+      ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillStyle=d.color; ctx.font='bold 10px -apple-system,sans-serif';
+      ctx.fillText(d.label, z.x, z.y-8);
+      ctx.fillStyle='#718096'; ctx.font='9px -apple-system,sans-serif';
+      ctx.fillText(d.sub, z.x, z.y+8);
+    });
+  }
+
+  /* ── Particles ─────────────────────────────────────────── */
+  const COLORS={cold:'#5C6BC0',hot:'#26A69A',flush:'#FFB74D',dlq:'#EF5350',read:'#AB47BC',dedup:'#66BB6A'};
+  let particles=[], running=false;
+
+  class P{
+    constructor(type,from,to){
+      this.type=type;
+      const a=Z[from], b=Z[to];
+      this.x=a.x+(Math.random()-.5)*40; this.y=a.y+(Math.random()-.5)*20;
+      this.tx=b.x+(Math.random()-.5)*50; this.ty=b.y+(Math.random()-.5)*22;
+      this.life=1; this.trail=[];
+    }
+    step(){
+      this.trail.push({x:this.x,y:this.y});
+      if(this.trail.length>7) this.trail.shift();
+      this.x+=(this.tx-this.x)*0.055;
+      this.y+=(this.ty-this.y)*0.055;
+      if(Math.abs(this.tx-this.x)<2.5 && Math.abs(this.ty-this.y)<2.5) this.life=0;
+    }
+    draw(){
+      const c=COLORS[this.type];
+      this.trail.forEach((p,i)=>{
+        ctx.globalAlpha=(i/this.trail.length)*0.28; ctx.fillStyle=c;
+        ctx.beginPath(); ctx.arc(p.x,p.y,2.6,0,Math.PI*2); ctx.fill();
+      });
+      ctx.globalAlpha=1; ctx.fillStyle=c;
+      ctx.shadowBlur=8; ctx.shadowColor=c;
+      ctx.beginPath(); ctx.arc(this.x,this.y,4,0,Math.PI*2); ctx.fill();
+      ctx.shadowBlur=0;
+    }
+  }
+  function spawn(type,n,from,to){
+    if(!Z[from]||!Z[to]) return;
+    for(let i=0;i<n;i++) setTimeout(()=>particles.push(new P(type,from,to)), i*22);
+  }
+
+  function loop(){
+    ctx.fillStyle='rgba(17,21,29,.28)';
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+    drawZones();
+    particles=particles.filter(p=>p.life>0);
+    particles.forEach(p=>{p.step();p.draw();});
+
+    if(running){
+      if(Math.random()<.30){
+        const hot=Math.random()<.25;
+        spawn(hot?'hot':'cold',3,hot?'api':'ingest','journal');
+        m.writes++; hot?m.hot++:m.cold++;
+      }
+      if(Math.random()<.05){ m.bulk++; m.docs+=7; spawn('flush',5,'engine','store'); flash('trig-time'); }
+      if(Math.random()<.02){ spawn('read',2,'journal','api'); m.hotread++; }
+    }
+    requestAnimationFrame(loop);
+  }
+
+  /* ── Metrics + log ─────────────────────────────────────── */
+  const m={writes:0,hot:0,cold:0,bulk:0,docs:0,dedup:0,dlq:0,hotread:0,coldread:0};
+  function update(){
+    for(const k in m){ const el=document.getElementById('m-'+k); if(el) el.textContent=m[k]; }
+    document.getElementById('m-io').textContent=(m.bulk?Math.round(m.docs/m.bulk):0)+'×';
+  }
+  setInterval(update,250);
+
+  function log(msg){
+    const el=document.getElementById('log');
+    const t=new Date().toLocaleTimeString();
+    el.innerHTML=`<div class="entry"><span class="ts">[${t}]</span> ${msg}</div>`+el.innerHTML;
+    while(el.children.length>70) el.removeChild(el.lastChild);
+  }
+  function flash(id){
+    const e=document.getElementById(id); if(!e) return;
+    e.classList.add('active'); setTimeout(()=>e.classList.remove('active'),650);
+  }
+
+  /* ── Wiring ────────────────────────────────────────────── */
+  const on=(id,fn)=>document.getElementById(id).addEventListener('click',fn);
+
+  on('autoRun',()=>{running=true;log('▶ Auto-run — cold + hot streams ingesting continuously');});
+  on('pause',  ()=>{running=false;log('⏸ Simulation paused');});
+  on('reset',  ()=>{
+    running=false; particles=[];
+    Object.keys(m).forEach(k=>m[k]=0); update();
+    ctx.clearRect(0,0,canvas.width,canvas.height); drawZones();
+    document.getElementById('log').innerHTML=''; log('⟲ State reset');
+  });
+
+  on('coldWrite',()=>{
+    m.writes++; m.cold++; spawn('cold',10,'ingest','journal');
+    log('❄️ Cold Write — Lua HSET+EXPIRE+ZADD → dirty:{band}');
+    if(Math.random()<.55){ m.bulk++; m.docs+=6; spawn('flush',6,'engine','store');
+      flash('trig-time'); log('⏰ Time trigger → BulkWrite(ordered=false) → DocumentDB'); }
+  });
+
+  on('hotLoad',()=>{
+    m.hot++; spawn('read',5,'store','journal');
+    setTimeout(()=>spawn('hot',5,'journal','journal'),260);
+    flash('trig-hot');
+    log('🔥 HotLoad — Source.Read(FindOne) → seed journal + SET hot:{band}:{crn} TTL=4h');
+  });
+
+  on('hotWrite',()=>{
+    m.writes++; m.hot++; spawn('hot',10,'api','journal');
+    flash('trig-hot');
+    setTimeout(()=>{ m.bulk++; m.docs+=1; spawn('flush',6,'engine','store'); },300);
+    log('🔥 Hot Write — IsHot()=true → SignalVolume → immediate flush (&lt;10ms)');
+  });
+
+  on('hotRead',()=>{
+    m.hotread++; spawn('read',5,'journal','api');
+    log('📖 Hot Read — pipeline HGET+PTTL → sub-ms. Lazy refresh if PTTL &lt; 20% ActivityWindow');
+  });
+
+  on('coldRead',()=>{
+    m.coldread++; spawn('read',5,'store','api');
+    log('❄️ Cold Read — journal miss → ReadContract → Source.Read → FindOne (5–50ms)');
+  });
+
+  on('query',()=>{
+    spawn('read',9,'journal','api');
+    log('🔍 Query — band-scoped SINTER (equality) + ZSCORE (range) → pipeline HGET hydrate');
+  });
+
+  on('dedupWrite',()=>{
+    m.writes++; m.dedup++; spawn('dedup',6,'ingest','journal');
+    log('🔄 Dedup — xxHash64 == stored h → EXPIRE only, return 0. Dirty set untouched.');
+  });
+
+  on('idempotentWrite',()=>{
+    m.writes++; spawn('cold',6,'ingest','journal');
+    log('🔐 WriteIdempotent — SETNX EX sl:{ns}:idem:{band}:{key}. Replay → ErrDuplicateIdempotencyKey');
+  });
+
+  on('triggerDLQ',()=>{
+    m.dlq++; spawn('dlq',8,'engine','dlq');
+    log('⚠️ BulkWrite partial failure — Code 11000 → MoveToDeadLetter. Survivors still CommitKeys.');
+  });
+
+  on('processDLQ',()=>{
+    if(m.dlq>0){ const n=Math.min(m.dlq,3); m.dlq-=n; m.docs+=n;
+      spawn('flush',6,'dlq','store');
+      log('🛠️ ProcessDLQ(DLQUpsert) — drained '+n+' record(s), contract re-run with Upsert=true → CommitDLQKeys');
+    } else log('🛠️ ProcessDLQ — DLQ empty, nothing to drain');
+  });
+
+  document.getElementById('scrollHint').addEventListener('click',()=>{
+    document.querySelector('.reference').scrollIntoView({behavior:'smooth'});
+  });
+
+  /* ── Boot ──────────────────────────────────────────────── */
+  resize(); loop(); update(); drawZones();
+  log('🌊 Sluice v1.0.7 blueprint loaded — click any control to trace the data path');
+</script>
+</body>
+</html>
