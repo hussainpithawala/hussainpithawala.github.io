@@ -132,27 +132,30 @@
                                     </div>
                                 </div>
                                 <div>
-                                    <h5 class="fw-bold mb-0">Sluice: Velocity Shield &amp; Hot-State Journal</h5>
-                                    <p class="text-muted mb-0">Real-Time Data Access · Redis/Valkey · DocumentDB · Kafka/SQS</p>
+                                    <h5 class="fw-bold mb-0">Sluice: A Velocity Data Platform for Go</h5>
+                                    <p class="text-muted mb-0">Real-Time Data Access · Redis/Valkey · DocumentDB · DynamoDB · PostgreSQL · Kafka/SQS</p>
                                 </div>
                             </div>
 
                             <!-- ── Description ───────────────────────────────────────── -->
                             <p>
-                                A production-grade velocity shield and hot-state journal for document stores.
-                                Absorbs <strong>100K TPS write spikes</strong> into a Redis-backed state journal, coalesces them into
-                                ~100 <code>BulkWrite</code> calls/sec (~1,000× I/O reduction), and serves
-                                <strong>sub-millisecond reads</strong> for active sessions via Hot/Cold regimes.
+                                A Redis-backed state plane between high-velocity traffic and any system of record.
+                                Absorbs <strong>100K TPS write spikes</strong> into a durable journal, coalesces them into
+                                ~100 bulk writes/sec (~1,000× I/O reduction), and serves reads from an in-process L1
+                                (<strong>sub-µs</strong>) and the Redis journal (<strong>sub-ms</strong>). It also pre-warms
+                                working sets, answers live queries, and never silently drops an acknowledged write.
                                 Powers hyper-personalization for <strong>10M+ customers</strong>.
                             </p>
 
                             <!-- ── Architecture ──────────────────────────────────────── -->
                             <p class="fw-semibold mb-2">Architecture &amp; Mechanics</p>
                             <ul class="architecture-list">
-                                <li><strong>Velocity Shield</strong> → Atomic writes absorb 100K TPS; content dedup skips redundant payloads.</li>
-                                <li><strong>Flush Engine</strong> → Multi-trigger drain with two-phase commit; crash-safe by construction.</li>
-                                <li><strong>Hot/Cold Regime</strong> → <code>HotLoad()</code> promotes keys to sub-ms reads; silent demotion on expiry.</li>
-                                <li><strong>Queryable Journal</strong> → Secondary indexes serve compound lookups without a DB round-trip.</li>
+                                <li><strong>Velocity Shield</strong> → Atomic Lua writes absorb 100K TPS; per-key coalescing and content dedup keep redundant writes off the store.</li>
+                                <li><strong>Flush Engine</strong> → Time, volume, backlog and hot triggers; per-key sequences make every commit conditional, so a write that races a flush is never lost.</li>
+                                <li><strong>Tiered Reads</strong> → L1 local journal → Redis L2 → datastore; Redis Streams broadcast keeps peer pods converged within milliseconds.</li>
+                                <li><strong>Working-Set Pre-Warming</strong> → <code>ReadBulk()</code> replaces N+1 lookups with one set-based query, hydrated in pipelines.</li>
+                                <li><strong>Queryable Journal</strong> → Secondary indexes serve compound equality/range lookups without a datastore round-trip.</li>
+                                <li><strong>No Silent Loss</strong> → Unflushed state never expires, degraded mode preserves order, and failures go to a self-healing DLQ.</li>
                             </ul>
 
                             <!-- ── Tech stack ────────────────────────────────────────── -->
@@ -161,9 +164,12 @@
                                 <span class="badge bg-light text-dark border me-1 mb-1">Go 1.25</span>
                                 <span class="badge bg-light text-dark border me-1 mb-1">Redis / Valkey Cluster</span>
                                 <span class="badge bg-light text-dark border me-1 mb-1">Lua</span>
-                                <span class="badge bg-light text-dark border me-1 mb-1">AWS DocumentDB</span>
-                                <span class="badge bg-light text-dark border me-1 mb-1">MongoDB v2 Driver</span>
+                                <span class="badge bg-light text-dark border me-1 mb-1">Redis Streams</span>
+                                <span class="badge bg-light text-dark border me-1 mb-1">AWS DocumentDB / MongoDB</span>
+                                <span class="badge bg-light text-dark border me-1 mb-1">AWS DynamoDB</span>
+                                <span class="badge bg-light text-dark border me-1 mb-1">PostgreSQL (pgx)</span>
                                 <span class="badge bg-light text-dark border me-1 mb-1">Kafka / SQS</span>
+                                <span class="badge bg-light text-dark border me-1 mb-1">Prometheus / Grafana</span>
                             </div>
 
                             <!-- ── Components table ──────────────────────────────────── -->
@@ -184,7 +190,7 @@
                                                 <i class="bi bi-github"></i> sluice-go
                                             </a>
                                         </td>
-                                        <td><span class="badge bg-success">Stable (v1.0.7)</span></td>
+                                        <td><span class="badge bg-success">Stable (v1.0.8)</span></td>
                                     </tr>
                                     </tbody>
                                 </table>
